@@ -90,7 +90,6 @@ impl MessageQueue {
     }
 
     pub async fn new(url: &str, max_retries: u32, exchange_prefix: &str) -> Result<Self> {
-        // Normalize the AMQP URL to handle trailing slash consistently with Python extractor
         let normalized_url = Self::normalize_amqp_url(url)?;
 
         let mq = Self {
@@ -114,17 +113,12 @@ impl MessageQueue {
     pub(crate) fn normalize_amqp_url(url: &str) -> Result<String> {
         let mut parsed_url = Url::parse(url).context("Failed to parse AMQP URL")?;
 
-        // Get the path (which represents the vhost)
         let path = parsed_url.path();
 
-        // If path is "/" (trailing slash with no vhost), it means default vhost
-        // lapin interprets this as empty vhost, so we need to remove the trailing slash
-        // to make it connect to the default vhost "/"
+        // lapin treats a trailing slash as an empty vhost rather than the default vhost.
         if path == "/" {
             parsed_url.set_path("");
         }
-        // If path is empty, lapin correctly uses default vhost
-        // If path is something else (e.g., "/groovemap"), lapin uses that vhost
 
         Ok(parsed_url.to_string())
     }
@@ -157,7 +151,6 @@ impl MessageQueue {
 
         let channel = conn.create_channel().await.context("Failed to create AMQP channel")?;
 
-        // Enable publisher confirms
         channel.confirm_select(ConfirmSelectOptions::default()).await.context("Failed to enable publisher confirms")?;
 
         *self.connection.write().await = Some(conn);

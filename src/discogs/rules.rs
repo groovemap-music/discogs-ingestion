@@ -1,7 +1,3 @@
-// Rule engine items are wired into the extraction pipeline in a subsequent task.
-// The module is fully exercised by rules_tests; suppress dead-code lints until then.
-#![allow(dead_code)]
-
 use anyhow::{Context, Result};
 use regex::Regex;
 use serde::Deserialize;

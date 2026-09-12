@@ -197,9 +197,9 @@ impl StateMarker {
         }
     }
 
-    /// Load state marker from file. Callers only ever pass paths built by `file_path()` /
-    /// `musicbrainz_file_path()` below, which embed `version` as a substring of a fixed
-    /// `.extraction_status_<version>.json` filename under an operator-controlled root — `version`
+    /// Load state marker from file. Callers only ever pass paths built by `file_path()` below,
+    /// which embeds `version` as a substring of a fixed `.extraction_status_<version>.json`
+    /// filename under an operator-controlled root — `version`
     /// itself is always a slash-free basename fragment (see extractor.rs), so this can never
     /// escape the configured root directory.
     pub async fn load(path: &Path) -> Result<Option<Self>> {
@@ -208,8 +208,6 @@ impl StateMarker {
             return Ok(None);
         }
 
-        // Try to read and parse the file, but return None if it fails
-        // This allows the extractor to start fresh if the state file is corrupt
         let read_result = fs::read_to_string(path).await; // nosemgrep: rust.actix.path-traversal.tainted-path.tainted-path
         let contents = match read_result {
             Ok(contents) => contents,
@@ -252,7 +250,6 @@ impl StateMarker {
 
         let json = serde_json::to_string_pretty(self).context("Failed to serialize state marker")?;
 
-        // Write to temp file then atomic rename to prevent corruption on crash
         let tmp_path = path.with_extension("json.tmp");
         {
             let mut tmp_file = fs::File::create(&tmp_path).await.context("Failed to create state marker temp file")?;
@@ -283,20 +280,8 @@ impl StateMarker {
     }
 
     /// Get the file path for a Discogs version's state marker.
-    ///
-    /// For MusicBrainz markers, use [`musicbrainz_file_path`] instead — MusicBrainz
-    /// markers live in a versioned subdirectory with a different filename prefix.
     pub fn file_path(discogs_root: &Path, version: &str) -> PathBuf {
         discogs_root.join(format!(".extraction_status_{}.json", version))
-    }
-
-    /// Get the file path for a MusicBrainz version's state marker.
-    ///
-    /// MusicBrainz markers are stored inside `musicbrainz_root/<version>/`
-    /// (the versioned subdirectory), not at the root level.
-    #[allow(dead_code)]
-    pub fn musicbrainz_file_path(musicbrainz_root: &Path, version: &str) -> PathBuf {
-        musicbrainz_root.join(version).join(format!(".mb_extraction_status_{}.json", version))
     }
 
     /// Number of files that have finished processing.
@@ -333,25 +318,21 @@ impl StateMarker {
             return ProcessingDecision::Reprocess;
         }
 
-        // If processing failed, can resume
         if self.processing_phase.status == PhaseStatus::Failed {
             warn!("⚠️ Processing phase failed, will resume");
             return ProcessingDecision::Continue;
         }
 
-        // If processing in progress, resume
         if self.processing_phase.status == PhaseStatus::InProgress {
             info!("🔄 Processing in progress, will resume");
             return ProcessingDecision::Continue;
         }
 
-        // If everything completed successfully, skip
         if self.summary.overall_status == PhaseStatus::Completed {
             info!("✅ Version {} already fully processed", self.current_version);
             return ProcessingDecision::Skip;
         }
 
-        // Otherwise, continue processing
         ProcessingDecision::Continue
     }
 
