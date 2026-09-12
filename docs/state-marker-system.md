@@ -6,10 +6,9 @@ progress, and avoid treating a previously completed version as new.
 
 ## Marker locations
 
-| Source | Version example | Marker path |
-| --- | --- | --- |
-| Discogs | `20260101` | `{DISCOGS_ROOT}/.extraction_status_20260101.json` |
-| MusicBrainz | `20260326-001001` | `{MUSICBRAINZ_ROOT}/20260326-001001/.mb_extraction_status_20260326-001001.json` |
+For a Discogs version such as `20260101`, the marker is
+`{DISCOGS_ROOT}/.extraction_status_20260101.json`. `DISCOGS_ROOT` defaults to
+`/discogs-data`.
 
 Markers contain four sections: `download_phase`, `processing_phase`,
 `publishing_phase`, and `summary`. Phase statuses are `pending`, `in_progress`,
