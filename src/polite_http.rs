@@ -127,10 +127,8 @@ impl PoliteClient {
             let server_wait = parse_retry_after(&response);
             let chosen_wait = match server_wait {
                 Some(d) => d.min(self.cfg.max_retry_after),
-                // No header — fall back to a conservative default that grows
-                // with each attempt: 30s, 60s, 120s, ...
                 None => {
-                    let secs = 30u64.saturating_mul(1u64 << (throttled_attempts.saturating_sub(1)));
+                    let secs = 30u64.saturating_mul(1u64 << throttled_attempts.saturating_sub(1));
                     Duration::from_secs(secs).min(self.cfg.max_retry_after)
                 }
             };

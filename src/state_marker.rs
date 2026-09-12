@@ -208,8 +208,6 @@ impl StateMarker {
             return Ok(None);
         }
 
-        // Try to read and parse the file, but return None if it fails
-        // This allows the extractor to start fresh if the state file is corrupt
         let read_result = fs::read_to_string(path).await; // nosemgrep: rust.actix.path-traversal.tainted-path.tainted-path
         let contents = match read_result {
             Ok(contents) => contents,
@@ -252,7 +250,6 @@ impl StateMarker {
 
         let json = serde_json::to_string_pretty(self).context("Failed to serialize state marker")?;
 
-        // Write to temp file then atomic rename to prevent corruption on crash
         let tmp_path = path.with_extension("json.tmp");
         {
             let mut tmp_file = fs::File::create(&tmp_path).await.context("Failed to create state marker temp file")?;
@@ -333,25 +330,21 @@ impl StateMarker {
             return ProcessingDecision::Reprocess;
         }
 
-        // If processing failed, can resume
         if self.processing_phase.status == PhaseStatus::Failed {
             warn!("⚠️ Processing phase failed, will resume");
             return ProcessingDecision::Continue;
         }
 
-        // If processing in progress, resume
         if self.processing_phase.status == PhaseStatus::InProgress {
             info!("🔄 Processing in progress, will resume");
             return ProcessingDecision::Continue;
         }
 
-        // If everything completed successfully, skip
         if self.summary.overall_status == PhaseStatus::Completed {
             info!("✅ Version {} already fully processed", self.current_version);
             return ProcessingDecision::Skip;
         }
 
-        // Otherwise, continue processing
         ProcessingDecision::Continue
     }
 
