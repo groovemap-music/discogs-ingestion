@@ -16,7 +16,6 @@ pub enum DataType {
 
 impl DataType {
     /// Get all data types
-    #[allow(dead_code)]
     pub fn all() -> Vec<DataType> {
         vec![DataType::Artists, DataType::Labels, DataType::Masters, DataType::ReleaseGroups, DataType::Releases]
     }
@@ -27,7 +26,6 @@ impl DataType {
     }
 
     /// Get data types for MusicBrainz extraction (no Masters)
-    #[allow(dead_code)]
     pub fn musicbrainz() -> Vec<DataType> {
         vec![DataType::Artists, DataType::Labels, DataType::ReleaseGroups, DataType::Releases]
     }
@@ -100,7 +98,6 @@ impl ExtractionProgress {
         }
     }
 
-    #[allow(dead_code)]
     pub fn get(&self, data_type: DataType) -> u64 {
         match data_type {
             DataType::Artists => self.artists,
@@ -149,7 +146,6 @@ pub struct DataMessage {
     pub data: serde_json::Value,
     /// Raw XML fragment for data quality inspection; never serialized to AMQP
     #[serde(skip)]
-    #[allow(dead_code)]
     pub raw_xml: Option<Vec<u8>>,
 }
 

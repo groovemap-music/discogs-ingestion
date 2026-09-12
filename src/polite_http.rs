@@ -60,18 +60,6 @@ impl PoliteConfig {
             read_timeout: Duration::from_secs(120),
         }
     }
-
-    /// Defaults tuned for `data.metabrainz.org` (MusicBrainz JSON dumps).
-    #[allow(dead_code)] // wired up by musicbrainz_downloader once feature lands
-    pub fn musicbrainz() -> Self {
-        Self {
-            min_gap: Duration::from_secs(2),
-            max_retry_after: Duration::from_secs(30 * 60),
-            max_throttle_retries: 5,
-            request_timeout: Duration::from_secs(120),
-            read_timeout: Duration::from_secs(120),
-        }
-    }
 }
 
 #[derive(Clone)]

@@ -197,9 +197,9 @@ impl StateMarker {
         }
     }
 
-    /// Load state marker from file. Callers only ever pass paths built by `file_path()` /
-    /// `musicbrainz_file_path()` below, which embed `version` as a substring of a fixed
-    /// `.extraction_status_<version>.json` filename under an operator-controlled root — `version`
+    /// Load state marker from file. Callers only ever pass paths built by `file_path()` below,
+    /// which embeds `version` as a substring of a fixed `.extraction_status_<version>.json`
+    /// filename under an operator-controlled root — `version`
     /// itself is always a slash-free basename fragment (see extractor.rs), so this can never
     /// escape the configured root directory.
     pub async fn load(path: &Path) -> Result<Option<Self>> {
@@ -280,20 +280,8 @@ impl StateMarker {
     }
 
     /// Get the file path for a Discogs version's state marker.
-    ///
-    /// For MusicBrainz markers, use [`musicbrainz_file_path`] instead — MusicBrainz
-    /// markers live in a versioned subdirectory with a different filename prefix.
     pub fn file_path(discogs_root: &Path, version: &str) -> PathBuf {
         discogs_root.join(format!(".extraction_status_{}.json", version))
-    }
-
-    /// Get the file path for a MusicBrainz version's state marker.
-    ///
-    /// MusicBrainz markers are stored inside `musicbrainz_root/<version>/`
-    /// (the versioned subdirectory), not at the root level.
-    #[allow(dead_code)]
-    pub fn musicbrainz_file_path(musicbrainz_root: &Path, version: &str) -> PathBuf {
-        musicbrainz_root.join(version).join(format!(".mb_extraction_status_{}.json", version))
     }
 
     /// Number of files that have finished processing.
