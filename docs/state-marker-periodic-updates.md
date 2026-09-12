@@ -57,9 +57,7 @@ jq '.processing_phase.current_file,
   /discogs-data/.extraction_status_20260101.json
 ```
 
-MusicBrainz markers live in the version directory and use the
-`.mb_extraction_status_<version>.json` filename. State markers are runtime data and must
-not be committed to this repository.
+State markers are runtime data and must not be committed to this repository.
 
 See [State-marker system](state-marker-system.md) for version decisions, checksum
 invalidation, and file locations.

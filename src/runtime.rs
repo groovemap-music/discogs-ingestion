@@ -20,14 +20,14 @@ use crate::state_marker::StateMarker;
 use crate::telemetry;
 use crate::types::{DataMessage, DataType, ExtractionProgress};
 
-/// Factory for creating MessagePublisher instances (enables DI for testing)
+/// Creates message publishers at the runtime boundary.
 #[cfg_attr(feature = "test-support", mockall::automock)]
 #[async_trait]
 pub trait MessageQueueFactory: Send + Sync {
     async fn create(&self, url: &str, exchange_prefix: &str) -> Result<Arc<dyn MessagePublisher>>;
 }
 
-/// Default factory that creates real MessageQueue connections
+/// Production message-queue factory.
 pub struct DefaultMessageQueueFactory;
 
 #[async_trait]
@@ -103,20 +103,17 @@ pub async fn message_batcher(mut receiver: mpsc::Receiver<DataMessage>, sender: 
     let mut last_state_save = 0u64;
 
     loop {
-        // Try to receive with timeout
         match tokio::time::timeout(Duration::from_millis(100), receiver.recv()).await {
             Ok(Some(message)) => {
                 batch.push(message);
                 total_records += 1;
 
-                // Update progress
                 {
                     let mut s = state.write().await;
                     s.extraction_progress.increment(data_type);
                     s.last_extraction_time.insert(data_type, Instant::now());
                 }
 
-                // Save state marker periodically
                 if total_records.is_multiple_of(state_save_interval as u64) && total_records != last_state_save {
                     last_state_save = total_records;
                     let mut marker = state_marker.lock().await;
@@ -128,7 +125,6 @@ pub async fn message_batcher(mut receiver: mpsc::Receiver<DataMessage>, sender: 
                     }
                 }
 
-                // Send batch if full
                 if batch.len() >= batch_size {
                     let messages = std::mem::replace(&mut batch, Vec::with_capacity(batch_size));
                     // Count extracted records once per batch, not once per record: a monthly
@@ -140,7 +136,6 @@ pub async fn message_batcher(mut receiver: mpsc::Receiver<DataMessage>, sender: 
                 }
             }
             Ok(None) => {
-                // Channel closed, send remaining messages
                 if !batch.is_empty() {
                     telemetry::record_records(data_type.as_str(), batch.len() as u64);
                     sender.send(batch).await?;
@@ -149,7 +144,6 @@ pub async fn message_batcher(mut receiver: mpsc::Receiver<DataMessage>, sender: 
                 break;
             }
             Err(_) => {
-                // Timeout, check if we should flush
                 if !batch.is_empty() && last_flush.elapsed() > Duration::from_secs(1) {
                     let messages = std::mem::replace(&mut batch, Vec::with_capacity(batch_size));
                     telemetry::record_records(data_type.as_str(), messages.len() as u64);
@@ -161,7 +155,6 @@ pub async fn message_batcher(mut receiver: mpsc::Receiver<DataMessage>, sender: 
         }
     }
 
-    // Save final state marker with accurate batch count
     {
         let mut marker = state_marker.lock().await;
         marker.update_file_progress(&file_name, total_records, total_records, total_batches);
@@ -203,9 +196,6 @@ pub(crate) async fn progress_reporter(state: Arc<RwLock<ExtractorState>>, shutdo
     let mut report_count = 0;
 
     loop {
-        // Check for shutdown will be handled by select! below
-
-        // Sleep interval
         let interval = if report_count < 3 { Duration::from_secs(10) } else { Duration::from_secs(30) };
 
         tokio::select! {
@@ -218,7 +208,6 @@ pub(crate) async fn progress_reporter(state: Arc<RwLock<ExtractorState>>, shutdo
         let s = state.read().await;
         let total = s.extraction_progress.total();
 
-        // Check for stalled extractors
         let mut stalled = Vec::new();
 
         for (data_type, last_time) in &s.last_extraction_time {
@@ -232,7 +221,6 @@ pub(crate) async fn progress_reporter(state: Arc<RwLock<ExtractorState>>, shutdo
             warn!("⚠️ Stalled extractors detected: {:?}", stalled);
         }
 
-        // Log progress
         info!(
             // Every type total() sums over must be listed, otherwise the parts do not add
             // up to the printed total on the MusicBrainz instance (release_groups) and the

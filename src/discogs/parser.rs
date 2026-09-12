@@ -127,7 +127,6 @@ impl XmlParser {
         Self { data_type, sender, capture_raw_xml: false }
     }
 
-    #[allow(dead_code)]
     pub fn with_options(data_type: DataType, sender: mpsc::Sender<DataMessage>, capture_raw_xml: bool) -> Self {
         Self { data_type, sender, capture_raw_xml }
     }
