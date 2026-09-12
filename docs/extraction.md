@@ -9,17 +9,19 @@ flowchart TD
     L[List monthly dumps] --> C[Choose complete version]
     C --> D[Download and verify checksums]
     D --> P[Parse XML stream]
-    P --> N[Normalize Discogs records]
-    N --> Q[Apply quality rules]
-    Q --> B[Batch events]
+    P --> Q[Apply optional quality policy]
+    Q --> N[Normalize Discogs records]
+    N --> B[Batch events]
     B --> M[(RabbitMQ fanout exchanges)]
-    M --> S[Persist state marker]
+    M --> S[Persist progress and completion]
 ```
 
 The default data root is `/discogs-data`. `PERIODIC_CHECK_DAYS` controls subsequent
-checks; `DISCOGS_EXCHANGE_PREFIX` defaults to `groovemap-discogs`. Manual triggers and
-shutdown remain local to this service. No MusicBrainz health endpoint, ordering rule,
-or shared lock participates in a run.
+checks; `DISCOGS_EXCHANGE_PREFIX` defaults to `groovemap-discogs`. `--force-reprocess`
+forces the startup run, while `POST /trigger` accepts an optional JSON
+`force_reprocess` boolean for a running service. Manual triggers and shutdown remain
+local to this service. No MusicBrainz health endpoint, ordering rule, or shared lock
+participates in a run.
 
 ## The canonical `media` block
 
