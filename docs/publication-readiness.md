@@ -15,3 +15,11 @@ than committed with generated recovery material.
 History cutover and repository publication are separate operator approvals. A successful
 rehearsal does not rewrite a remote, change visibility, publish an image or package, create a
 tag, or create a release.
+
+Run the focused `just publication-history-test` while changing the attestation or
+rehearsal tooling. Operators run
+`just history-rehearsal <source-repository> <output-directory>` with
+`PLANNING_ARCHIVE_REPO` set to the local planning-archive checkout. Both recipes are
+deliberately retained: the focused test shortens policy feedback, and the rehearsal is
+the documented non-publishing evidence path even though neither is called by another
+repository-local recipe.
