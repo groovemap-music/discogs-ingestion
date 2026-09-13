@@ -832,8 +832,8 @@ pub async fn run_extraction_loop(
                     Err(e) => {
                         error!("❌ Periodic check failed: {}", e);
                         // Backstop: an early `?` in process_discogs_data leaves status at Running.
-                        // Reset to Failed so /trigger recovery and the MusicBrainz idle-wait unblock
-                        // instead of staying wedged for the whole periodic sleep. (cu2.41)
+                        // Reset to Failed so /trigger recovery is not wedged for the whole
+                        // periodic sleep and /health reports the failed run. (cu2.41)
                         reset_status_after_failed_check(&state).await;
                     }
                 }
