@@ -54,10 +54,9 @@ pub struct ExtractorState {
 /// - `Idle` — initial state before any extraction runs
 /// - `Running` — actively processing a run (set at the top of `process_*_data`)
 /// - `Completed` — transient success state set by `process_*_data` at the end of a run
-/// - `Waiting` — set by `run_*_loop` right before the periodic sleep; the dominant observable
-///   success state during the 5-day wait between checks. Downstream consumers (MusicBrainz
-///   extractor waiting on Discogs health, admin dashboard tracker) treat `waiting` as terminal
-///   success equivalent to `completed`.
+/// - `Waiting` — set by the periodic loop right before sleeping; the dominant observable success
+///   state between checks. Operator-facing health clients treat `waiting` as terminal success
+///   equivalent to `completed`.
 /// - `Failed` — the last run failed; persists through the sleep window so operators can see it,
 ///   and is overwritten to `Running` when the next attempt begins.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -260,14 +259,13 @@ pub(crate) async fn wait_for_trigger(trigger: &Arc<tokio::sync::Mutex<Option<boo
 /// Reset a stuck `Running` extraction status to `Failed` after a periodic or API-triggered
 /// check returns `Err`.
 ///
-/// `process_discogs_data` / `process_musicbrainz_data` set the status to `Running` up-front but
-/// only reset it on their fall-through tail; any early `?` error short-circuits before that reset,
-/// leaving the status at `Running`. The periodic loops swallow the `Err` and sleep for
+/// `process_discogs_data` sets the status to `Running` up-front but only resets it on its
+/// fall-through tail; any early `?` error short-circuits before that reset, leaving the status at
+/// `Running`. The periodic loop swallows the `Err` and sleeps for
 /// `periodic_check_days`, so without this backstop the status stays `Running` for the entire sleep —
 /// wedging the manual `/trigger` recovery (health.rs returns 409 `already_running` before enqueuing
-/// the trigger), starving the MusicBrainz extractor's `wait_for_discogs_idle` (which treats
-/// `running` as busy), and misreporting `/health`. `Failed` is a terminal, non-`Running` state that
-/// the periodic loop preserves (it only rewrites `Completed` -> `Waiting`) until the next successful
+/// the trigger) and misreporting `/health`. `Failed` is a terminal, non-`Running` state that the
+/// periodic loop preserves (it only rewrites `Completed` -> `Waiting`) until the next successful
 /// run. (cu2.41)
 pub(crate) async fn reset_status_after_failed_check(state: &Arc<RwLock<ExtractorState>>) {
     let mut s = state.write().await;

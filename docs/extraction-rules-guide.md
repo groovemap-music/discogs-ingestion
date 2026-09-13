@@ -208,13 +208,13 @@ and replace the `values:` block under the `format-not-recognized` rule in
 
 Artifacts live beneath `{DISCOGS_ROOT}/flagged/{version}/{entity}/`:
 
-```text
-flagged/<version>/<entity>/
-├── <record-id>.xml
-├── <record-id>.json
-├── skipped.jsonl
-├── violations.jsonl
-└── report.txt
+```mermaid
+flowchart TD
+    R["flagged/{version}/{entity}/"] --> X["{record-id}.xml"]
+    R --> J["{record-id}.json"]
+    R --> S["skipped.jsonl"]
+    R --> V["violations.jsonl"]
+    R --> T["report.txt"]
 ```
 
 XML is reconstructed from the parsed record and is semantically equivalent to the
