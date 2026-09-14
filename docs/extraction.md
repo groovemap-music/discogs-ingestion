@@ -23,6 +23,36 @@ forces the startup run, while `POST /trigger` accepts an optional JSON
 local to this service. No MusicBrainz health endpoint, ordering rule, or shared lock
 participates in a run.
 
+## One-shot local smoke input
+
+Released-image integration tests may explicitly select the operator/test-only local
+manifest seam:
+
+```bash
+discogs-ingestion --local-manifest /fixtures/manifest.json
+```
+
+`LOCAL_MANIFEST` is the equivalent container configuration. This mode accepts the
+versioned `groovemap.discogs-extractor-smoke` single-file manifest, verifies its relative
+input path and SHA-256, stages the file under `DISCOGS_ROOT`, and runs it once through the
+same parse, normalization, RabbitMQ publication, state-marker, and completion code used by
+normal extraction. It exits after that run and never lists or downloads public Discogs
+dumps. Missing inputs, malformed or unsupported manifests, path escapes, and checksum
+mismatches stop the run before parsing or publication.
+
+The default invocation does not select this seam: it still discovers the latest complete
+monthly set (artists, labels, masters, releases, and the published checksum file), performs
+HTTP acquisition, and enters the normal periodic-check loop. The canonical tiny manifest
+and its synthetic release input live under `contracts/extractor-smoke/v1/`; deployment
+tests should mount a reviewed immutable copy of that directory rather than introduce a
+second fixture format.
+
+The released container also packages that directory at
+`/usr/share/discogs-ingestion/contracts/extractor-smoke/v1/`, so a digest-pinned image can
+run its own fixture without any source checkout. Operators still have to pass
+`--local-manifest /usr/share/discogs-ingestion/contracts/extractor-smoke/v1/manifest.json`
+explicitly; the image sets no local-manifest default.
+
 ## The canonical `media` block
 
 Normalization attaches a `media` block to every `releases` record, alongside the raw

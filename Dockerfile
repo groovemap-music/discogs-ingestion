@@ -109,6 +109,11 @@ RUN mkdir -p /discogs-data /logs && \
 # Copy binary from builder
 COPY --from=builder /app/target/release/discogs-ingestion /usr/local/bin/discogs-ingestion
 
+# Package the producer-owned synthetic smoke contract so a released-image test needs no
+# sibling repository checkout. LOCAL_MANIFEST is intentionally not set: normal image startup
+# must keep using public monthly-dump acquisition unless an operator explicitly selects it.
+COPY contracts/extractor-smoke /usr/share/discogs-ingestion/contracts/extractor-smoke
+
 # Switch to non-root user
 # UID/GID build arguments resolve to numeric IDs; DL3066 cannot infer their values.
 # hadolint ignore=DL3066
