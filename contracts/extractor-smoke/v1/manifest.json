@@ -1,0 +1,34 @@
+{
+  "contract": "groovemap.discogs-extractor-smoke",
+  "version": 1,
+  "scope": "single_file",
+  "license": "MIT",
+  "data_origin": "synthetic",
+  "catalog_event_contract": {
+    "name": "groovemap.catalog-events",
+    "version": 1,
+    "schema": "../../catalog-events/v1/schemas/event.schema.json",
+    "schema_sha256": "e89b24364448dd0496f96d1dc8b8d46198e358ac12dbd48d250dd6ef7f2967f0"
+  },
+  "input": {
+    "path": "discogs_20000101_releases.xml.gz",
+    "media_type": "application/gzip",
+    "sha256": "d72b8f00248b6a00543deaa875b798c333d1c17e68984085147f27ee4dabc640",
+    "data_type": "releases",
+    "records": 1
+  },
+  "expected_event_stream": {
+    "path": "expected-events.ndjson",
+    "media_type": "application/x-ndjson",
+    "sha256": "362ac797fb767ed7c9d7269c6b312ec4f3067b2603deaab51e302e25888ea8ed",
+    "events": 2,
+    "exchange": "groovemap-discogs-releases"
+  },
+  "semantic_normalizer": {
+    "name": "groovemap.discogs-extractor-smoke",
+    "version": 1,
+    "replace": {
+      "file_complete.timestamp": "2000-01-01T00:00:00Z"
+    }
+  }
+}
