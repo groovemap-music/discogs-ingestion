@@ -22,6 +22,10 @@ struct Args {
     /// Path to data quality rules YAML file
     #[clap(long, env = "DATA_QUALITY_RULES")]
     data_quality_rules: Option<std::path::PathBuf>,
+
+    /// Process a versioned local smoke manifest once, without public dump acquisition
+    #[clap(long, env = "LOCAL_MANIFEST")]
+    local_manifest: Option<std::path::PathBuf>,
 }
 
 #[tokio::main]
@@ -133,6 +137,7 @@ async fn main() -> Result<()> {
         mq_factory,
         trigger.clone(),
         compiled_rules,
+        args.local_manifest,
     )
     .await;
 

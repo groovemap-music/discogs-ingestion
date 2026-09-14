@@ -4,6 +4,7 @@
 //! composition root. Dependencies point inward to the provider-neutral runtime.
 
 pub mod downloader;
+pub mod local_manifest;
 pub mod media;
 pub mod normalize;
 pub mod parser;
@@ -752,6 +753,7 @@ pub async fn run_extraction_loop(
     mq_factory: Arc<dyn MessageQueueFactory>,
     trigger: Arc<tokio::sync::Mutex<Option<bool>>>,
     compiled_rules: Option<Arc<CompiledRulesConfig>>,
+    local_manifest: Option<PathBuf>,
 ) -> Result<()> {
     info!("📥 Starting initial data processing...");
 
@@ -760,6 +762,19 @@ pub async fn run_extraction_loop(
     // currently-parked waiters and stores no permit, so the periodic loop's fresh shutdown arm
     // never fires and the process enters the multi-day sleep, unstoppable. (cu2.44)
     let shutdown_flag = spawn_shutdown_flag_monitor(shutdown.clone());
+
+    // Local manifests are an explicit operator/test-only, one-shot input seam. They still
+    // enter the production processing function below, but never construct the public HTTP
+    // downloader and never enter the periodic acquisition loop.
+    if let Some(manifest_path) = local_manifest {
+        info!("📦 Running one-shot local manifest: {}", manifest_path.display());
+        let mut source = local_manifest::LocalManifestSource::from_manifest(&manifest_path, config.discogs_root.clone()).await?;
+        let success =
+            process_discogs_data(config, state, shutdown, shutdown_flag.clone(), force_reprocess, &mut source, mq_factory, compiled_rules).await?;
+        initial_run_outcome(success, shutdown_flag.load(Ordering::SeqCst), "Discogs local manifest")?;
+        info!("✅ One-shot local manifest completed successfully");
+        return Ok(());
+    }
 
     // Process initial data
     let mut downloader = Downloader::new(config.discogs_root.clone()).await?;
