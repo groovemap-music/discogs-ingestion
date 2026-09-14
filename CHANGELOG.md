@@ -3,7 +3,16 @@
 All notable changes to this repository will be recorded here by Commitizen from
 Conventional Commits.
 
+## v0.3.1 (2026-09-14)
+
+### Fix
+
+- **release**: recover the v0.3.0 publication rejected before workflow admission
+
 ## v0.3.0 (2026-09-14)
+
+The `v0.3.0` workflow failed before publishing artifacts or images. The tag is
+retained as an immutable record of that release attempt.
 
 ### Feat
 
