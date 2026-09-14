@@ -10,6 +10,7 @@
 - [Runtime identity](runtime-identity.md) — repository, image, service, and RabbitMQ names.
 - [Publication readiness](publication-readiness.md) — release-history and approval gates.
 - [Catalog event contract](../contracts/catalog-events/README.md) — generated artifacts.
+- [Extractor smoke contract](../contracts/extractor-smoke/README.md) — versioned synthetic dump and expected RabbitMQ events.
 - [Producer normalization decision](decisions/0001-producer-normalization-boundary.md).
 
 The MusicBrainz producer is maintained independently in `groovemap-music/musicbrainz-ingestion`.
