@@ -2,9 +2,9 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::Utc;
 use extractor::config::ExtractorConfig;
-use extractor::extractor::{ExtractorState, process_single_file};
+use extractor::discogs::local_manifest::LocalManifestSource;
+use extractor::extractor::{ExtractorState, MessageQueueFactory, process_discogs_data};
 use extractor::message_queue::MessagePublisher;
-use extractor::state_marker::StateMarker;
 use extractor::types::{DataMessage, DataType, ExtractionCompleteMessage, FileCompleteMessage, Message};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use tempfile::TempDir;
-use tokio::sync::{Mutex as AsyncMutex, RwLock};
+use tokio::sync::RwLock;
 
 const CONTRACT_ROOT: &str = "contracts/extractor-smoke/v1";
 
@@ -77,6 +77,17 @@ impl MessagePublisher for CapturingPublisher {
 
     async fn close(&self) -> Result<()> {
         Ok(())
+    }
+}
+
+struct CapturingFactory {
+    publisher: Arc<CapturingPublisher>,
+}
+
+#[async_trait]
+impl MessageQueueFactory for CapturingFactory {
+    async fn create(&self, _url: &str, _exchange_prefix: &str) -> Result<Arc<dyn MessagePublisher>> {
+        Ok(self.publisher.clone())
     }
 }
 
@@ -149,25 +160,31 @@ async fn versioned_tiny_dump_produces_the_pinned_rabbitmq_event_stream() {
     }
 
     let temp_dir = TempDir::new().unwrap();
-    let file_name = manifest["input"]["path"].as_str().unwrap();
-    std::fs::copy(&input_path, temp_dir.path().join(file_name)).unwrap();
-
     let state = Arc::new(RwLock::new(ExtractorState::default()));
-    let marker = Arc::new(AsyncMutex::new(StateMarker::new("20000101".to_string())));
     let publisher = Arc::new(CapturingPublisher::default());
-    process_single_file(
-        file_name,
+    let factory = Arc::new(CapturingFactory { publisher: publisher.clone() });
+    let mut source = LocalManifestSource::from_manifest(&contract_root.join("manifest.json"), temp_dir.path().to_path_buf()).await.unwrap();
+    let succeeded = process_discogs_data(
         Arc::new(test_config(temp_dir.path())),
-        state,
-        marker,
-        temp_dir.path().join("state-marker.json"),
-        publisher.clone(),
+        state.clone(),
+        Arc::new(tokio::sync::Notify::new()),
+        Arc::new(std::sync::atomic::AtomicBool::new(false)),
+        false,
+        &mut source,
+        factory,
         None,
     )
     .await
     .unwrap();
+    assert!(succeeded);
+    assert!(temp_dir.path().join(manifest["input"]["path"].as_str().unwrap()).is_file());
+    assert_eq!(state.read().await.extraction_progress.releases, 1);
 
     let mut actual = publisher.events();
-    normalize_dynamic_fields(&mut actual, &manifest);
-    assert_eq!(actual, expected);
+    assert_eq!(actual.len(), expected.len() + 1, "the whole production run also emits extraction_complete");
+    normalize_dynamic_fields(&mut actual[..expected.len()], &manifest);
+    assert_eq!(&actual[..expected.len()], expected);
+    assert_eq!(actual[2]["type"], "extraction_complete");
+    assert_eq!(actual[2]["version"], "20000101");
+    assert_eq!(actual[2]["record_counts"]["releases"], 1);
 }

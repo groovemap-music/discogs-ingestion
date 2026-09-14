@@ -1,6 +1,15 @@
 use super::*;
 
 #[test]
+fn local_manifest_mode_is_explicit_and_defaults_off() {
+    let production = Args::try_parse_from(["discogs-ingestion"]).unwrap();
+    assert!(production.local_manifest.is_none());
+
+    let smoke = Args::try_parse_from(["discogs-ingestion", "--local-manifest", "/fixtures/manifest.json"]).unwrap();
+    assert_eq!(smoke.local_manifest, Some(std::path::PathBuf::from("/fixtures/manifest.json")));
+}
+
+#[test]
 fn test_build_tracing_filter_debug() {
     let filter = build_tracing_filter("debug");
     assert_eq!(filter, "extractor=debug,lapin=info");
