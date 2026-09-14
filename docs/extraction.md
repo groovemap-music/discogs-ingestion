@@ -47,6 +47,12 @@ and its synthetic release input live under `contracts/extractor-smoke/v1/`; depl
 tests should mount a reviewed immutable copy of that directory rather than introduce a
 second fixture format.
 
+The released container also packages that directory at
+`/usr/share/discogs-ingestion/contracts/extractor-smoke/v1/`, so a digest-pinned image can
+run its own fixture without any source checkout. Operators still have to pass
+`--local-manifest /usr/share/discogs-ingestion/contracts/extractor-smoke/v1/manifest.json`
+explicitly; the image sets no local-manifest default.
+
 ## The canonical `media` block
 
 Normalization attaches a `media` block to every `releases` record, alongside the raw
