@@ -821,3 +821,7 @@ impl DataSource for Downloader {
 #[cfg(test)]
 #[path = "tests/downloader_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "tests/downloader_reliability_contract_tests.rs"]
+mod reliability_contract_tests;
