@@ -1,6 +1,25 @@
 {
-  "source": "design",
-  "path": "taxonomy/media/v1/media-taxonomy.json",
-  "commit": "5e89a70f32973d0ad32da01c31695cf004d832f7",
-  "sha256": "73677c6e577a9098136582539f5515814b8b73e4069a74fd6424d6b74e4553ac"
+  "vocabularies": [
+    {
+      "file": "company-roles.json",
+      "source": "design",
+      "path": "taxonomy/company-roles/v1/company-roles.json",
+      "commit": "d06e1571f6acce6a246e4c0b6be866ecbea44c72",
+      "sha256": "03ab8689ba14768dceffb756a71475c01797caea8d18ba9943cd5f69b3d705de"
+    },
+    {
+      "file": "identifier-types.json",
+      "source": "design",
+      "path": "taxonomy/identifiers/v1/identifier-types.json",
+      "commit": "d06e1571f6acce6a246e4c0b6be866ecbea44c72",
+      "sha256": "2df8a691173f779b2d2076f31e8abd01d160e51f4f371de99f1f8e1cb12f26a5"
+    },
+    {
+      "file": "media-taxonomy.json",
+      "source": "design",
+      "path": "taxonomy/media/v1/media-taxonomy.json",
+      "commit": "5e89a70f32973d0ad32da01c31695cf004d832f7",
+      "sha256": "73677c6e577a9098136582539f5515814b8b73e4069a74fd6424d6b74e4553ac"
+    }
+  ]
 }

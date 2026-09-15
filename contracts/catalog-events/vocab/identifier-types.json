@@ -1,0 +1,105 @@
+{
+  "vocabulary_version": "1",
+  "license": "MIT",
+  "unmapped_type": "other",
+  "identifier_types": [
+    {
+      "id": "barcode",
+      "label": "Barcode",
+      "alias_provider": "barcode",
+      "description": "A printed product barcode carried by a physical edition."
+    },
+    {
+      "id": "matrix_runout",
+      "label": "Matrix / runout",
+      "alias_provider": "matrix",
+      "description": "An inscription stamped or etched into the run-out area of a disc or the inner ring of an optical disc."
+    },
+    {
+      "id": "label_code",
+      "label": "Label code",
+      "alias_provider": null,
+      "description": "A label code assigned to an issuing label by a collecting society."
+    },
+    {
+      "id": "rights_society",
+      "label": "Rights society",
+      "alias_provider": null,
+      "description": "The collecting society named on the release."
+    },
+    {
+      "id": "asin",
+      "label": "ASIN",
+      "alias_provider": null,
+      "description": "A retailer's own product number carried on the release page."
+    },
+    {
+      "id": "other",
+      "label": "Other",
+      "alias_provider": null,
+      "description": "An identifier whose kind the vocabulary does not model separately; the raw type is preserved under the item's source."
+    },
+    {
+      "id": "catalog_number",
+      "label": "Catalogue number",
+      "alias_provider": "catalog_number",
+      "description": "A catalogue number assigned by an issuing label, lifted from the release's label entries rather than from the raw identifier list."
+    }
+  ],
+  "alias_namespaces": [
+    {
+      "provider": "barcode",
+      "type": "barcode",
+      "normalization": "digits_only",
+      "alias_source": "catalog",
+      "description": "Barcodes are compared as digits, so the spacing and hyphenation a submitter typed do not change the identity."
+    },
+    {
+      "provider": "catalog_number",
+      "type": "catalog_number",
+      "normalization": "upper_collapse_space",
+      "alias_source": "catalog",
+      "description": "Catalogue numbers are compared without case or internal spacing, which is how labels print the same number two ways."
+    },
+    {
+      "provider": "matrix",
+      "type": "matrix_runout",
+      "normalization": "collapse_space",
+      "alias_source": "catalog",
+      "description": "A matrix inscription keeps its case: the characters stamped into the disc are the evidence, so only whitespace is normalised."
+    }
+  ],
+  "normalizations": [
+    {
+      "id": "digits_only",
+      "description": "Keep the ASCII digits of the value in order and discard every other character."
+    },
+    {
+      "id": "upper_collapse_space",
+      "description": "Trim the value, collapse every run of whitespace to one space, then upper-case it."
+    },
+    {
+      "id": "collapse_space",
+      "description": "Trim the value and collapse every run of whitespace to one space, preserving case."
+    }
+  ],
+  "discogs": {
+    "identifier_field": "identifiers",
+    "catalog_number_field": "labels[].catno",
+    "absent_catalog_number": "none",
+    "types": {
+      "ASIN": "asin",
+      "Barcode": "barcode",
+      "ISRC": "other",
+      "Label Code": "label_code",
+      "Mastering SID Code": "other",
+      "Matrix / Runout": "matrix_runout",
+      "Mould SID Code": "other",
+      "Other": "other",
+      "Pressing Plant ID": "other",
+      "Price Code": "other",
+      "Rights Society": "rights_society",
+      "SPARS Code": "other"
+    }
+  }
+}
