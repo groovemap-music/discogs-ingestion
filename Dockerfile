@@ -53,8 +53,10 @@ RUN --mount=type=cache,id=sccache-discogs-ingestion,target=/root/.cache/sccache 
     cargo build --release --locked && \
     rm -rf src
 
-# Copy the vendored media taxonomy: src/discogs/media.rs pulls it in at compile
-# time via include_str!, so it must be in the build context before `COPY src`.
+# Copy the vendored vocabularies: media.rs, identifiers.rs, and companies.rs each
+# pull one in at compile time via include_str!, so the whole directory must be in
+# the build context before `COPY src`. Narrowing this to a single file breaks the
+# build the next time a mapper vendors another vocabulary.
 # This is only the vendored vocab subtree, not the whole contracts/ tree.
 COPY contracts/catalog-events/vocab ./contracts/catalog-events/vocab
 

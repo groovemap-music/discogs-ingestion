@@ -1,0 +1,48 @@
+{
+  "name": "discogs-absent-catalogue-number",
+  "provider": "discogs",
+  "description": "A label entry whose catalogue number is the absent marker contributes nothing, in either case.",
+  "input": {
+    "labels": [
+      {
+        "name": "Not On Label",
+        "catno": "none"
+      },
+      {
+        "name": "Not On Label",
+        "catno": "NONE"
+      },
+      {
+        "name": "Sub Pop",
+        "catno": "SP-1234"
+      }
+    ]
+  },
+  "expected": {
+    "identifiers_version": "1",
+    "items": [
+      {
+        "type": "catalog_number",
+        "value": "SP-1234",
+        "description": null,
+        "source": {
+          "provider": "discogs",
+          "type": null,
+          "field": "labels[].catno"
+        }
+      }
+    ],
+    "types": [
+      "catalog_number"
+    ],
+    "aliases": [
+      {
+        "provider": "catalog_number",
+        "external_id": "SP-1234"
+      }
+    ],
+    "unmapped": {
+      "types": []
+    }
+  }
+}

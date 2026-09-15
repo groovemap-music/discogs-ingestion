@@ -1,0 +1,128 @@
+{
+  "name": "discogs-rights-holders",
+  "provider": "discogs",
+  "description": "Copyright, phonographic copyright, publishing, licensing, and the record company of record all carry the rights category.",
+  "input": {
+    "companies": [
+      {
+        "name": "BMG Records (UK) Ltd.",
+        "catno": "",
+        "entity_type": "13",
+        "entity_type_name": "Phonographic Copyright (p)",
+        "id": 82835
+      },
+      {
+        "name": "BMG Records (UK) Ltd.",
+        "catno": "",
+        "entity_type": "14",
+        "entity_type_name": "Copyright (c)",
+        "id": 82835
+      },
+      {
+        "name": "All Boys Music Ltd.",
+        "catno": "",
+        "entity_type": "21",
+        "entity_type_name": "Published By",
+        "id": 273945
+      },
+      {
+        "name": "RCA",
+        "catno": "",
+        "entity_type": "4",
+        "entity_type_name": "Record Company",
+        "id": 895
+      },
+      {
+        "name": "Arista",
+        "catno": "",
+        "entity_type": "5",
+        "entity_type_name": "Licensed To",
+        "id": 226
+      },
+      {
+        "name": "Zomba",
+        "catno": "",
+        "entity_type": "6",
+        "entity_type_name": "Licensed From",
+        "id": 1425
+      }
+    ]
+  },
+  "expected": {
+    "companies_version": "1",
+    "items": [
+      {
+        "name": "BMG Records (UK) Ltd.",
+        "discogs_id": 82835,
+        "role": "Phonographic Copyright (p)",
+        "role_category": "rights",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "13"
+        }
+      },
+      {
+        "name": "BMG Records (UK) Ltd.",
+        "discogs_id": 82835,
+        "role": "Copyright (c)",
+        "role_category": "rights",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "14"
+        }
+      },
+      {
+        "name": "All Boys Music Ltd.",
+        "discogs_id": 273945,
+        "role": "Published By",
+        "role_category": "rights",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "21"
+        }
+      },
+      {
+        "name": "RCA",
+        "discogs_id": 895,
+        "role": "Record Company",
+        "role_category": "rights",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "4"
+        }
+      },
+      {
+        "name": "Arista",
+        "discogs_id": 226,
+        "role": "Licensed To",
+        "role_category": "rights",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "5"
+        }
+      },
+      {
+        "name": "Zomba",
+        "discogs_id": 1425,
+        "role": "Licensed From",
+        "role_category": "rights",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "6"
+        }
+      }
+    ],
+    "role_categories": [
+      "rights"
+    ],
+    "unmapped": {
+      "roles": []
+    }
+  }
+}

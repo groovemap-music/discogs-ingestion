@@ -1,0 +1,65 @@
+{
+  "name": "discogs-malformed-entries",
+  "provider": "discogs",
+  "description": "Entries that are not plain objects, or that lack a type or a value, are skipped and never recorded as unmapped.",
+  "input": {
+    "identifiers": [
+      null,
+      [
+        "Barcode"
+      ],
+      "Barcode",
+      7,
+      {
+        "type": "Barcode",
+        "value": "   "
+      },
+      {
+        "value": "5012394144777"
+      },
+      {
+        "type": "   ",
+        "value": "5012394144777"
+      },
+      {
+        "type": "Barcode",
+        "value": " 5012394144777 "
+      }
+    ],
+    "labels": [
+      null,
+      "Sub Pop",
+      {
+        "name": "Sub Pop",
+        "catno": "   "
+      }
+    ]
+  },
+  "expected": {
+    "identifiers_version": "1",
+    "items": [
+      {
+        "type": "barcode",
+        "value": "5012394144777",
+        "description": null,
+        "source": {
+          "provider": "discogs",
+          "type": "Barcode",
+          "field": "identifiers"
+        }
+      }
+    ],
+    "types": [
+      "barcode"
+    ],
+    "aliases": [
+      {
+        "provider": "barcode",
+        "external_id": "5012394144777"
+      }
+    ],
+    "unmapped": {
+      "types": []
+    }
+  }
+}

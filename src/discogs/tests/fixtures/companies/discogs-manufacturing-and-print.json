@@ -1,0 +1,108 @@
+{
+  "name": "discogs-manufacturing-and-print",
+  "provider": "discogs",
+  "description": "General manufacture, tape duplication, and print work share one category; a role Discogs sent without a numeric code keeps a null entity type.",
+  "input": {
+    "companies": [
+      {
+        "name": "Sonopress",
+        "catno": "",
+        "entity_type": "10",
+        "entity_type_name": "Manufactured By",
+        "id": 21000
+      },
+      {
+        "name": "MPO",
+        "catno": "",
+        "entity_type": "16",
+        "entity_type_name": "Made By",
+        "id": 22000
+      },
+      {
+        "name": "Garrod & Lofthouse",
+        "catno": "",
+        "entity_type": "19",
+        "entity_type_name": "Printed By",
+        "id": 23000
+      },
+      {
+        "name": "Tapematic",
+        "catno": "",
+        "entity_type_name": "Duplicated By",
+        "id": 24000
+      },
+      {
+        "name": "EMI",
+        "catno": "",
+        "entity_type_name": "Manufactured For",
+        "id": 25000
+      }
+    ]
+  },
+  "expected": {
+    "companies_version": "1",
+    "items": [
+      {
+        "name": "Sonopress",
+        "discogs_id": 21000,
+        "role": "Manufactured By",
+        "role_category": "manufacturing",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "10"
+        }
+      },
+      {
+        "name": "MPO",
+        "discogs_id": 22000,
+        "role": "Made By",
+        "role_category": "manufacturing",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "16"
+        }
+      },
+      {
+        "name": "Garrod & Lofthouse",
+        "discogs_id": 23000,
+        "role": "Printed By",
+        "role_category": "manufacturing",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "19"
+        }
+      },
+      {
+        "name": "Tapematic",
+        "discogs_id": 24000,
+        "role": "Duplicated By",
+        "role_category": "manufacturing",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": null
+        }
+      },
+      {
+        "name": "EMI",
+        "discogs_id": 25000,
+        "role": "Manufactured For",
+        "role_category": "manufacturing",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": null
+        }
+      }
+    ],
+    "role_categories": [
+      "manufacturing"
+    ],
+    "unmapped": {
+      "roles": []
+    }
+  }
+}

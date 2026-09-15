@@ -1,0 +1,14 @@
+{
+  "name": "discogs-no-companies",
+  "provider": "discogs",
+  "description": "A release carrying no company list still produces the complete empty block.",
+  "input": {},
+  "expected": {
+    "companies_version": "1",
+    "items": [],
+    "role_categories": [],
+    "unmapped": {
+      "roles": []
+    }
+  }
+}

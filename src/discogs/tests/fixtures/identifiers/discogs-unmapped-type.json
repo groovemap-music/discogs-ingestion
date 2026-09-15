@@ -1,0 +1,57 @@
+{
+  "name": "discogs-unmapped-type",
+  "provider": "discogs",
+  "description": "A raw type the vocabulary does not carry becomes other and is additionally recorded under unmapped.",
+  "input": {
+    "identifiers": [
+      {
+        "type": "Depósito Legal",
+        "value": "M-12345-1987"
+      },
+      {
+        "type": "Barcode",
+        "value": "0075992758123"
+      }
+    ]
+  },
+  "expected": {
+    "identifiers_version": "1",
+    "items": [
+      {
+        "type": "other",
+        "value": "M-12345-1987",
+        "description": null,
+        "source": {
+          "provider": "discogs",
+          "type": "Depósito Legal",
+          "field": "identifiers"
+        }
+      },
+      {
+        "type": "barcode",
+        "value": "0075992758123",
+        "description": null,
+        "source": {
+          "provider": "discogs",
+          "type": "Barcode",
+          "field": "identifiers"
+        }
+      }
+    ],
+    "types": [
+      "barcode",
+      "other"
+    ],
+    "aliases": [
+      {
+        "provider": "barcode",
+        "external_id": "0075992758123"
+      }
+    ],
+    "unmapped": {
+      "types": [
+        "Depósito Legal"
+      ]
+    }
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "name": "discogs-recording-facilities",
+  "provider": "discogs",
+  "description": "Every room the audio passed through before mastering carries the recording-facility category.",
+  "input": {
+    "companies": [
+      {
+        "name": "The Power Plant",
+        "catno": "",
+        "entity_type": "23",
+        "entity_type_name": "Recorded At",
+        "id": 55555
+      },
+      {
+        "name": "PWL Studios",
+        "catno": "",
+        "entity_type": "27",
+        "entity_type_name": "Mixed At",
+        "id": 66666
+      },
+      {
+        "name": "Konk Studios",
+        "catno": "",
+        "entity_type": "24",
+        "entity_type_name": "Engineered At",
+        "id": 77777
+      },
+      {
+        "name": "The Exchange",
+        "catno": "",
+        "entity_type": "36",
+        "entity_type_name": "Edited At",
+        "id": 88888
+      },
+      {
+        "name": "Britannia Row",
+        "catno": "",
+        "entity_type": "26",
+        "entity_type_name": "Produced At",
+        "id": 99999
+      }
+    ]
+  },
+  "expected": {
+    "companies_version": "1",
+    "items": [
+      {
+        "name": "The Power Plant",
+        "discogs_id": 55555,
+        "role": "Recorded At",
+        "role_category": "recording_facility",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "23"
+        }
+      },
+      {
+        "name": "PWL Studios",
+        "discogs_id": 66666,
+        "role": "Mixed At",
+        "role_category": "recording_facility",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "27"
+        }
+      },
+      {
+        "name": "Konk Studios",
+        "discogs_id": 77777,
+        "role": "Engineered At",
+        "role_category": "recording_facility",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "24"
+        }
+      },
+      {
+        "name": "The Exchange",
+        "discogs_id": 88888,
+        "role": "Edited At",
+        "role_category": "recording_facility",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "36"
+        }
+      },
+      {
+        "name": "Britannia Row",
+        "discogs_id": 99999,
+        "role": "Produced At",
+        "role_category": "recording_facility",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "26"
+        }
+      }
+    ],
+    "role_categories": [
+      "recording_facility"
+    ],
+    "unmapped": {
+      "roles": []
+    }
+  }
+}

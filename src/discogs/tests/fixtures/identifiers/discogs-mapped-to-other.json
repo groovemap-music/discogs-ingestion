@@ -1,0 +1,106 @@
+{
+  "name": "discogs-mapped-to-other",
+  "provider": "discogs",
+  "description": "Known narrow Discogs types route to other and are never reported as unmapped; the raw type survives on the item.",
+  "input": {
+    "identifiers": [
+      {
+        "type": "Mastering SID Code",
+        "value": "IFPI L041"
+      },
+      {
+        "type": "Mould SID Code",
+        "value": "IFPI 0448"
+      },
+      {
+        "type": "Price Code",
+        "value": "AC",
+        "description": "D:"
+      },
+      {
+        "type": "SPARS Code",
+        "value": "DDD"
+      },
+      {
+        "type": "Pressing Plant ID",
+        "value": "51"
+      },
+      {
+        "type": "Other",
+        "value": "A-1"
+      }
+    ]
+  },
+  "expected": {
+    "identifiers_version": "1",
+    "items": [
+      {
+        "type": "other",
+        "value": "IFPI L041",
+        "description": null,
+        "source": {
+          "provider": "discogs",
+          "type": "Mastering SID Code",
+          "field": "identifiers"
+        }
+      },
+      {
+        "type": "other",
+        "value": "IFPI 0448",
+        "description": null,
+        "source": {
+          "provider": "discogs",
+          "type": "Mould SID Code",
+          "field": "identifiers"
+        }
+      },
+      {
+        "type": "other",
+        "value": "AC",
+        "description": "D:",
+        "source": {
+          "provider": "discogs",
+          "type": "Price Code",
+          "field": "identifiers"
+        }
+      },
+      {
+        "type": "other",
+        "value": "DDD",
+        "description": null,
+        "source": {
+          "provider": "discogs",
+          "type": "SPARS Code",
+          "field": "identifiers"
+        }
+      },
+      {
+        "type": "other",
+        "value": "51",
+        "description": null,
+        "source": {
+          "provider": "discogs",
+          "type": "Pressing Plant ID",
+          "field": "identifiers"
+        }
+      },
+      {
+        "type": "other",
+        "value": "A-1",
+        "description": null,
+        "source": {
+          "provider": "discogs",
+          "type": "Other",
+          "field": "identifiers"
+        }
+      }
+    ],
+    "types": [
+      "other"
+    ],
+    "aliases": [],
+    "unmapped": {
+      "types": []
+    }
+  }
+}

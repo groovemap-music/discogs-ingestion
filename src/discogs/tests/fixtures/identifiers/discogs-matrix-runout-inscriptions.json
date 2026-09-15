@@ -1,0 +1,60 @@
+{
+  "name": "discogs-matrix-runout-inscriptions",
+  "provider": "discogs",
+  "description": "Two run-out inscriptions with side descriptions; the matrix namespace collapses whitespace and keeps case.",
+  "input": {
+    "identifiers": [
+      {
+        "type": "Matrix / Runout",
+        "value": "PB 41447  A2 UTOPIA MS",
+        "description": "A side runout"
+      },
+      {
+        "type": "Matrix / Runout",
+        "value": "PB 41447-B.2 UTOPIA MS",
+        "description": "B side runout"
+      }
+    ]
+  },
+  "expected": {
+    "identifiers_version": "1",
+    "items": [
+      {
+        "type": "matrix_runout",
+        "value": "PB 41447  A2 UTOPIA MS",
+        "description": "A side runout",
+        "source": {
+          "provider": "discogs",
+          "type": "Matrix / Runout",
+          "field": "identifiers"
+        }
+      },
+      {
+        "type": "matrix_runout",
+        "value": "PB 41447-B.2 UTOPIA MS",
+        "description": "B side runout",
+        "source": {
+          "provider": "discogs",
+          "type": "Matrix / Runout",
+          "field": "identifiers"
+        }
+      }
+    ],
+    "types": [
+      "matrix_runout"
+    ],
+    "aliases": [
+      {
+        "provider": "matrix",
+        "external_id": "PB 41447 A2 UTOPIA MS"
+      },
+      {
+        "provider": "matrix",
+        "external_id": "PB 41447-B.2 UTOPIA MS"
+      }
+    ],
+    "unmapped": {
+      "types": []
+    }
+  }
+}

@@ -20,7 +20,7 @@
   "expected_event_stream": {
     "path": "expected-events.ndjson",
     "media_type": "application/x-ndjson",
-    "sha256": "362ac797fb767ed7c9d7269c6b312ec4f3067b2603deaab51e302e25888ea8ed",
+    "sha256": "ab8b6890904773c4a3ebccab3c80aedf534455bc98b3cb2704c88f24fdbf890f",
     "events": 2,
     "exchange": "groovemap-discogs-releases"
   },

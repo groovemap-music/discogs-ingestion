@@ -1,0 +1,57 @@
+{
+  "name": "discogs-company-catalogue-number",
+  "provider": "discogs",
+  "description": "A company entry may carry its own number, such as a plant job number, and a design house falls to other.",
+  "input": {
+    "companies": [
+      {
+        "name": "EMI Uden",
+        "catno": "S-12345",
+        "entity_type": "17",
+        "entity_type_name": "Pressed By",
+        "id": 31234
+      },
+      {
+        "name": "Stylorouge",
+        "catno": "",
+        "entity_type": "33",
+        "entity_type_name": "Designed At",
+        "id": 41234
+      }
+    ]
+  },
+  "expected": {
+    "companies_version": "1",
+    "items": [
+      {
+        "name": "EMI Uden",
+        "discogs_id": 31234,
+        "role": "Pressed By",
+        "role_category": "pressing",
+        "catno": "S-12345",
+        "source": {
+          "provider": "discogs",
+          "entity_type": "17"
+        }
+      },
+      {
+        "name": "Stylorouge",
+        "discogs_id": 41234,
+        "role": "Designed At",
+        "role_category": "other",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "33"
+        }
+      }
+    ],
+    "role_categories": [
+      "other",
+      "pressing"
+    ],
+    "unmapped": {
+      "roles": []
+    }
+  }
+}
