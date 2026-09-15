@@ -204,6 +204,46 @@ and replace the `values:` block under the `format-not-recognized` rule in
 `extraction-rules.yaml` with the printed lines, then re-run
 `cargo test format_not_recognized` to confirm the drift check passes.
 
+### `identifier-type-not-recognized` and `company-role-not-recognized`
+
+The policy includes two more warning-level `enum` rules on releases, both following the
+same pattern for [ADR 0011](https://github.com/groovemap-music/design/blob/main/docs/adr/0011-catalog-identifiers-and-manufacturing-credits.md):
+
+| Rule | Field | Allowed values |
+| --- | --- | --- |
+| `identifier-type-not-recognized` | `identifiers.identifier.@type` | the keys of `discogs.types` in [`vocab/identifier-types.json`](../contracts/catalog-events/vocab/identifier-types.json) |
+| `company-role-not-recognized` | `companies.company.entity_type_name` | the keys of `discogs.roles` in [`vocab/company-roles.json`](../contracts/catalog-events/vocab/company-roles.json) |
+
+Each rule flags exactly the raw strings its vocabulary does not carry, which are the same
+strings the canonical block records under `unmapped.types` or `unmapped.roles`. A string the
+vocabulary knows and deliberately routes to `other` -- `ISRC` and the SID codes, or a
+`Designed At` credit -- is mapped rather than unrecognised, so neither rule fires on it and
+neither block reports it. A release stating no identifiers and no companies is silent: an
+absent field is not an unrecognised value.
+
+Both are warnings, so the record is still normalized and published with the value preserved
+under `source.type` or `role`. The point is to make a new upstream string visible in the
+data-quality report, so adding it is a vocabulary change followed by re-vendoring rather than
+a code change.
+
+**Refreshing either enum after re-vendoring.** Each rule's `condition.values` list must
+exactly equal its vocabulary's mapping keys;
+`src/discogs/tests/rules_tests.rs::test_identifier_type_not_recognized_enum_matches_vendored_vocabulary`
+and `::test_company_role_not_recognized_enum_matches_vendored_vocabulary` read both files and
+fail on any drift. Regenerate a list the same way as above, for example:
+
+```bash
+python3 -c '
+import json
+d = json.load(open("contracts/catalog-events/vocab/identifier-types.json"))
+for name in sorted(d["discogs"]["types"]):
+    print(f"          - \"{name}\"")
+'
+```
+
+and replace the `values:` block under the matching rule in `extraction-rules.yaml`, then
+re-run `cargo test not_recognized` to confirm the drift checks pass.
+
 ## Diagnostic output
 
 Artifacts live beneath `{DISCOGS_ROOT}/flagged/{version}/{entity}/`:

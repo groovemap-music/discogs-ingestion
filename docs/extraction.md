@@ -72,3 +72,42 @@ field, and a consumer that does not read it is unaffected.
 `contracts/catalog-events/definitions/discogs.json` documents the exact shape via
 `fixture_payloads.releases`, which pairs a representative `formats` payload with the
 `media` block the mapper produces for it.
+
+## The canonical `identifiers` and `companies` blocks
+
+Normalization attaches two more canonical blocks to every `releases` record, computed from
+the same normalized record and attached in the same place, before the content hash.
+`src/discogs/identifiers.rs` and `src/discogs/companies.rs` map the release's raw identifier
+and company lists onto the closed vocabularies vendored at
+`contracts/catalog-events/vocab/identifier-types.json` and
+`contracts/catalog-events/vocab/company-roles.json`. See [ADR 0011, "Catalog identifiers,
+manufacturing credits, and release
+country"](https://github.com/groovemap-music/design/blob/main/docs/adr/0011-catalog-identifiers-and-manufacturing-credits.md).
+
+`identifiers` carries one entry per source identifier, in source order, each with a canonical
+type (`barcode`, `matrix_runout`, `label_code`, `rights_society`, `asin`, `other`, or
+`catalog_number`), the value as received, and the raw Discogs type string under
+`source.type`. A `catalog_number` entry has no raw identifier string behind it: it is lifted
+from the non-empty `catno` each label entry carries, and its `source.field` says so. The
+block also carries the sorted `types` it contains, the sorted `aliases` the release mints --
+`barcode` from a barcode, `catalog_number` from a catalogue number, and `matrix` from a
+run-out inscription, each normalised by the rule its namespace declares -- and
+`unmapped.types`, the raw type strings the vocabulary did not recognise.
+
+`companies` carries one entry per source company, in source order, each with the name, the
+Discogs label id, the raw `entity_type_name` preserved verbatim as `role`, the vocabulary's
+`role_category` for it, the company's own catalogue number, and the numeric relationship code
+under `source.entity_type`. The issuing label is not here: it is a label relation, not a
+company credit, and `labels` stays exactly as it was. The block also carries the sorted
+`role_categories` it contains and `unmapped.roles`.
+
+Each block takes the key its raw list held, which is the field name ADR 0011 gives the event
+and the path the persistence contract indexes. Nothing is dropped: every raw value survives
+inside the block, and an entry the vocabulary does not recognise maps to `other` and is
+additionally recorded under `unmapped`, where the `identifier-type-not-recognized` and
+`company-role-not-recognized` quality rules surface it. A release carrying neither list still
+carries both blocks, empty, so no consumer has to branch on a missing key.
+
+Both fields are **additive within v1**, like `media`: the event schema and every existing
+field are unchanged. `fixture_payloads.releases` in
+`contracts/catalog-events/definitions/discogs.json` documents the exact shape of each.

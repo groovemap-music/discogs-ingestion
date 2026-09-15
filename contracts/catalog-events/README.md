@@ -30,6 +30,32 @@ and the field is optional for a consumer to read. `fixture_payloads.releases` in
 `media` block the mapper produces for it, so `just contract` regenerates a fixture that
 documents the shape and `just contract-check` guards it from drifting out of date.
 
+## The `identifiers` and `companies` fields
+
+Every `releases` event carries an `identifiers` block and a `companies` block, computed at
+the normalization boundary before the content hash from the release's own identifier, label,
+and company lists. `identifiers` maps each raw Discogs identifier type onto the closed
+vocabulary vendored in `vocab/identifier-types.json`, lifts a `catalog_number` entry from each
+label entry's catalogue number, and derives the `barcode`, `catalog_number`, and `matrix`
+aliases the release mints. `companies` maps each raw `entity_type_name` onto the role
+categories vendored in `vocab/company-roles.json`, keeping the raw role verbatim beside the
+category. See [ADR 0011, "Catalog identifiers, manufacturing credits, and release
+country"](https://github.com/groovemap-music/design/blob/main/docs/adr/0011-catalog-identifiers-and-manufacturing-credits.md)
+for the rationale, and `src/discogs/identifiers.rs` and `src/discogs/companies.rs` for the
+mappers that produce them.
+
+Each block takes the key its raw list held -- the field name ADR 0011 gives the event, and the
+path the persistence contract indexes. Nothing is lost: the value as received, the raw type
+string, and the raw role string all survive inside the block, which is the provenance record.
+`labels` is read for the catalogue numbers and left exactly as it was.
+
+Both are **additive within v1**: existing fields and the event schema are unchanged, and
+either field is optional for a consumer to read. `fixture_payloads.releases` in
+`definitions/discogs.json` carries the exact blocks the mappers produce for a representative
+release, so `just contract` regenerates a fixture that documents the shape and
+`tests/contract_identifiers_companies_fixture_test.rs` replays each block through its mapper
+and fails the moment the fixture and the mapper disagree.
+
 ## Vendored vocabularies
 
 `vocab/` holds the vocabularies this producer maps against. None of them is generated.

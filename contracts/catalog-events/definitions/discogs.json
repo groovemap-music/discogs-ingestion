@@ -72,7 +72,119 @@
         }
       },
       "released": "2000-01-01",
-      "title": "Contract Release"
+      "title": "Contract Release",
+      "labels": [
+        {
+          "name": "Contract Label",
+          "catno": "PB 41447",
+          "entity_type": "1",
+          "entity_type_name": "Label",
+          "id": 895
+        }
+      ],
+      "identifiers": {
+        "identifiers_version": "1",
+        "items": [
+          {
+            "type": "barcode",
+            "value": "5 012394 144777",
+            "description": null,
+            "source": {
+              "provider": "discogs",
+              "type": "Barcode",
+              "field": "identifiers"
+            }
+          },
+          {
+            "type": "matrix_runout",
+            "value": "PB 41447-A2 UTOPIA MS",
+            "description": "A side runout",
+            "source": {
+              "provider": "discogs",
+              "type": "Matrix / Runout",
+              "field": "identifiers"
+            }
+          },
+          {
+            "type": "catalog_number",
+            "value": "PB 41447",
+            "description": null,
+            "source": {
+              "provider": "discogs",
+              "type": null,
+              "field": "labels[].catno"
+            }
+          }
+        ],
+        "types": [
+          "barcode",
+          "catalog_number",
+          "matrix_runout"
+        ],
+        "aliases": [
+          {
+            "provider": "barcode",
+            "external_id": "5012394144777"
+          },
+          {
+            "provider": "catalog_number",
+            "external_id": "PB 41447"
+          },
+          {
+            "provider": "matrix",
+            "external_id": "PB 41447-A2 UTOPIA MS"
+          }
+        ],
+        "unmapped": {
+          "types": []
+        }
+      },
+      "companies": {
+        "companies_version": "1",
+        "items": [
+          {
+            "name": "Damont",
+            "discogs_id": 12345,
+            "role": "Pressed By",
+            "role_category": "pressing",
+            "catno": null,
+            "source": {
+              "provider": "discogs",
+              "entity_type": "17"
+            }
+          },
+          {
+            "name": "Utopia Studios",
+            "discogs_id": 266218,
+            "role": "Lacquer Cut At",
+            "role_category": "lacquer",
+            "catno": null,
+            "source": {
+              "provider": "discogs",
+              "entity_type": "30"
+            }
+          },
+          {
+            "name": "BMG Records (UK) Ltd.",
+            "discogs_id": 82835,
+            "role": "Phonographic Copyright (p)",
+            "role_category": "rights",
+            "catno": null,
+            "source": {
+              "provider": "discogs",
+              "entity_type": "13"
+            }
+          }
+        ],
+        "role_categories": [
+          "lacquer",
+          "pressing",
+          "rights"
+        ],
+        "unmapped": {
+          "roles": []
+        }
+      }
     }
   },
   "source": {
