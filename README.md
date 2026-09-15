@@ -32,7 +32,7 @@ release evidence without publishing, tagging, or pushing.
 
 `just image` is not part of `just check` — the reusable CI already builds the image on
 every push. Run `just image` yourself whenever you touch a compile-time `include_str!`
-(e.g. the vendored media taxonomy under `contracts/catalog-events/vocab`) or anything
+(e.g. a vendored vocabulary under `contracts/catalog-events/vocab`) or anything
 else the Docker build context depends on, since `just check` alone won't catch a missing
 `COPY`.
 

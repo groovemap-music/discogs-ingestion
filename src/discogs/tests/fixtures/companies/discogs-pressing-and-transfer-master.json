@@ -1,0 +1,112 @@
+{
+  "name": "discogs-pressing-and-transfer-master",
+  "provider": "discogs",
+  "description": "A pressing plant, the rooms that cut and plated the transfer master, and the audio mastering house.",
+  "input": {
+    "companies": [
+      {
+        "name": "Damont",
+        "catno": "",
+        "entity_type": "17",
+        "entity_type_name": "Pressed By",
+        "id": 12345
+      },
+      {
+        "name": "Utopia Studios",
+        "catno": "",
+        "entity_type": "30",
+        "entity_type_name": "Lacquer Cut At",
+        "id": 266218
+      },
+      {
+        "name": "Sony DADC",
+        "catno": "",
+        "entity_type": "31",
+        "entity_type_name": "Glass Mastered At",
+        "id": 33176
+      },
+      {
+        "name": "Record Industry",
+        "catno": "",
+        "entity_type": "44",
+        "entity_type_name": "Plated At",
+        "id": 60591
+      },
+      {
+        "name": "Abbey Road Studios",
+        "catno": "",
+        "entity_type": "29",
+        "entity_type_name": "Mastered At",
+        "id": 9999
+      }
+    ]
+  },
+  "expected": {
+    "companies_version": "1",
+    "items": [
+      {
+        "name": "Damont",
+        "discogs_id": 12345,
+        "role": "Pressed By",
+        "role_category": "pressing",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "17"
+        }
+      },
+      {
+        "name": "Utopia Studios",
+        "discogs_id": 266218,
+        "role": "Lacquer Cut At",
+        "role_category": "lacquer",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "30"
+        }
+      },
+      {
+        "name": "Sony DADC",
+        "discogs_id": 33176,
+        "role": "Glass Mastered At",
+        "role_category": "lacquer",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "31"
+        }
+      },
+      {
+        "name": "Record Industry",
+        "discogs_id": 60591,
+        "role": "Plated At",
+        "role_category": "lacquer",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "44"
+        }
+      },
+      {
+        "name": "Abbey Road Studios",
+        "discogs_id": 9999,
+        "role": "Mastered At",
+        "role_category": "mastering",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "29"
+        }
+      }
+    ],
+    "role_categories": [
+      "lacquer",
+      "mastering",
+      "pressing"
+    ],
+    "unmapped": {
+      "roles": []
+    }
+  }
+}

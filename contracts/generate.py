@@ -17,10 +17,9 @@ CONTRACT_ROOT = EVENTS_ROOT / "v1"
 SCHEMA_PATH = CONTRACT_ROOT / "schemas" / "event.schema.json"
 SOURCE = "discogs"
 
-# The media taxonomy is vendored verbatim from the design repository (see
-# contracts/catalog-events/README.md); it is never generated or rewritten here.
+# The vocabularies are vendored verbatim from the design repository (see
+# contracts/catalog-events/README.md); they are never generated or rewritten here.
 VOCAB_ROOT = EVENTS_ROOT / "vocab"
-VENDORED_MEDIA_TAXONOMY_PATH = VOCAB_ROOT / "media-taxonomy.json"
 VENDORED_VOCAB_SOURCE_PATH = VOCAB_ROOT / "source.json"
 
 
@@ -141,30 +140,44 @@ def render_all() -> dict[Path, str]:
 
 
 def vendored_vocab_errors() -> list[str]:
-    """Check the vendored media taxonomy against its recorded digest.
+    """Check every vendored vocabulary against its recorded digest.
+
+    ``vocab/source.json`` lists one record per vendored file -- the media taxonomy
+    (ADR 0007) and the identifier-type and company-role vocabularies (ADR 0011).
+    Each record names the design commit and the SHA-256 the copy was taken from.
 
     This never writes anything -- it only reports drift so ``contract-check``
-    fails loudly instead of silently accepting a stale or missing vendor copy.
+    fails loudly instead of silently accepting a stale, missing, or unrecorded
+    vendor copy. A vocabulary file present in ``vocab/`` without a record is drift
+    too: it would otherwise be compiled into the mapper unverified.
     """
     errors: list[str] = []
     if not VENDORED_VOCAB_SOURCE_PATH.exists():
         errors.append(f"missing vendor source record: {VENDORED_VOCAB_SOURCE_PATH.relative_to(ROOT)}")
         return errors
     try:
-        record = json.loads(VENDORED_VOCAB_SOURCE_PATH.read_text(encoding="utf-8"))
-        expected_digest = record["sha256"]
+        records = json.loads(VENDORED_VOCAB_SOURCE_PATH.read_text(encoding="utf-8"))["vocabularies"]
+        recorded = {str(record["file"]): str(record["sha256"]) for record in records}
     except (json.JSONDecodeError, KeyError, TypeError) as exc:
         errors.append(f"invalid vendor source record {VENDORED_VOCAB_SOURCE_PATH.relative_to(ROOT)}: {exc}")
         return errors
-    if not VENDORED_MEDIA_TAXONOMY_PATH.exists():
-        errors.append(f"missing vendored media taxonomy: {VENDORED_MEDIA_TAXONOMY_PATH.relative_to(ROOT)}")
-        return errors
-    actual_digest = sha256(VENDORED_MEDIA_TAXONOMY_PATH.read_bytes()).hexdigest()
-    if actual_digest != expected_digest:
-        errors.append(
-            f"vendored media taxonomy digest mismatch: {VENDORED_MEDIA_TAXONOMY_PATH.relative_to(ROOT)} "
-            f"has sha256 {actual_digest}, but {VENDORED_VOCAB_SOURCE_PATH.relative_to(ROOT)} records {expected_digest}"
-        )
+    for name, expected_digest in sorted(recorded.items()):
+        path = VOCAB_ROOT / name
+        if not path.exists():
+            errors.append(f"missing vendored vocabulary: {path.relative_to(ROOT)}")
+            continue
+        actual_digest = sha256(path.read_bytes()).hexdigest()
+        if actual_digest != expected_digest:
+            errors.append(
+                f"vendored vocabulary digest mismatch: {path.relative_to(ROOT)} has sha256 {actual_digest}, "
+                f"but {VENDORED_VOCAB_SOURCE_PATH.relative_to(ROOT)} records {expected_digest}"
+            )
+    for path in sorted(VOCAB_ROOT.glob("*.json")):
+        if path != VENDORED_VOCAB_SOURCE_PATH and path.name not in recorded:
+            errors.append(
+                f"unrecorded vendored vocabulary: {path.relative_to(ROOT)} has no entry in "
+                f"{VENDORED_VOCAB_SOURCE_PATH.relative_to(ROOT)}"
+            )
     return errors
 
 
@@ -194,7 +207,7 @@ def main() -> int:
         return 1
     vocab_errors = vendored_vocab_errors()
     if vocab_errors:
-        sys.stderr.write("vendored media taxonomy is out of date:\n")
+        sys.stderr.write("vendored vocabularies are out of date:\n")
         sys.stderr.write("".join(f"  {error}\n" for error in vocab_errors))
         return 1
     return 0

@@ -519,6 +519,70 @@ fn test_normalize_release_format_non_object_item() {
     assert_eq!(formats[1], json!(42));
 }
 
+// ── identifiers and companies (ADR 0011) ────────────────────────────
+
+/// The identifier list arrives wrapped and attribute-prefixed, like every other release
+/// list; normalization flattens it and de-prefixes it, leaving the raw `type` string alone
+/// because the vocabulary maps from exactly that string.
+#[test]
+fn test_identifiers_are_flattened_and_de_prefixed() {
+    let mut record = json!({
+        "@id": "1",
+        "identifiers": {"identifier": [
+            {"@type": "Barcode", "@value": "5012394144777"},
+            {"@type": "Matrix / Runout", "@value": "PB 41447 A2", "@description": "A side"}
+        ]}
+    });
+    normalize_record("releases", &mut record);
+    assert_eq!(
+        record["identifiers"],
+        json!([
+            {"type": "Barcode", "value": "5012394144777"},
+            {"type": "Matrix / Runout", "value": "PB 41447 A2", "description": "A side"}
+        ])
+    );
+}
+
+/// A single identifier arrives unwrapped rather than as a list, and still normalizes to one.
+#[test]
+fn test_single_identifier_becomes_a_one_item_list() {
+    let mut record = json!({"@id": "1", "identifiers": {"identifier": {"@type": "Barcode", "@value": "5012394144777"}}});
+    normalize_record("releases", &mut record);
+    assert_eq!(record["identifiers"], json!([{"type": "Barcode", "value": "5012394144777"}]));
+}
+
+/// Company entries carry their fields as child elements rather than attributes, so nothing
+/// needs de-prefixing; the raw `entity_type_name` is preserved for the vocabulary to map.
+#[test]
+fn test_companies_are_flattened_with_the_raw_role_preserved() {
+    let mut record = json!({
+        "@id": "1",
+        "companies": {"company": [
+            {"id": "12345", "name": "Damont", "catno": "", "entity_type": "17", "entity_type_name": "Pressed By"}
+        ]}
+    });
+    normalize_record("releases", &mut record);
+    assert_eq!(record["companies"], json!([{"id": "12345", "name": "Damont", "catno": "", "entity_type": "17", "entity_type_name": "Pressed By"}]));
+}
+
+/// An empty container leaves no key behind, exactly as every other list field does — the
+/// canonical block, attached later, is what guarantees the published shape.
+#[test]
+fn test_empty_identifier_and_company_containers_are_dropped() {
+    let mut record = json!({"@id": "1", "identifiers": {}, "companies": null});
+    normalize_record("releases", &mut record);
+    assert!(record.get("identifiers").is_none());
+    assert!(record.get("companies").is_none());
+}
+
+/// Only releases carry these fields; an artist record with a same-named field is untouched.
+#[test]
+fn test_identifiers_are_not_normalized_for_other_types() {
+    let mut record = json!({"@id": "1", "name": "Aphex Twin", "identifiers": {"identifier": {"@type": "Barcode"}}});
+    normalize_record("artists", &mut record);
+    assert_eq!(record["identifiers"], json!({"identifier": {"@type": "Barcode"}}));
+}
+
 // ── unknown data type -> no-op ──────────────────────────────────────
 
 #[test]

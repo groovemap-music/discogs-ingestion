@@ -1,0 +1,87 @@
+{
+  "vocabulary_version": "1",
+  "license": "MIT",
+  "unmapped_category": "other",
+  "role_categories": [
+    {
+      "id": "manufacturing",
+      "label": "Manufacturing",
+      "description": "A company that made the physical article or a part of it, other than the disc pressing itself: general manufacture, tape duplication, and print work."
+    },
+    {
+      "id": "mastering",
+      "label": "Mastering",
+      "description": "A company that mastered the audio, as distinct from the fabrication of a physical transfer master."
+    },
+    {
+      "id": "lacquer",
+      "label": "Transfer master",
+      "description": "A company that cut, mastered, or plated the physical master the copies are made from: a lacquer, a glass master, or a stamper."
+    },
+    {
+      "id": "pressing",
+      "label": "Pressing",
+      "description": "A plant that pressed the discs."
+    },
+    {
+      "id": "distribution",
+      "label": "Distribution",
+      "description": "A company that moved the article to a market."
+    },
+    {
+      "id": "marketing",
+      "label": "Marketing",
+      "description": "A company that marketed the release."
+    },
+    {
+      "id": "rights",
+      "label": "Rights",
+      "description": "A company holding or licensing a right in the release: copyright, phonographic copyright, publishing, licensing, or the record company of record."
+    },
+    {
+      "id": "recording_facility",
+      "label": "Recording facility",
+      "description": "A facility or company where the audio was captured or worked on before mastering: recording, engineering, mixing, editing, and production."
+    },
+    {
+      "id": "other",
+      "label": "Other",
+      "description": "A company relationship the vocabulary does not model separately; the raw role is preserved on the item."
+    }
+  ],
+  "discogs": {
+    "company_field": "companies",
+    "excluded_field": "labels",
+    "roles": {
+      "Copyright (c)": "rights",
+      "Designed At": "other",
+      "Distributed By": "distribution",
+      "Duplicated By": "manufacturing",
+      "Edited At": "recording_facility",
+      "Engineered At": "recording_facility",
+      "Exported By": "distribution",
+      "Funded By": "other",
+      "Glass Mastered At": "lacquer",
+      "Lacquer Cut At": "lacquer",
+      "Licensed From": "rights",
+      "Licensed Through": "rights",
+      "Licensed To": "rights",
+      "Made By": "manufacturing",
+      "Manufactured By": "manufacturing",
+      "Manufactured For": "manufacturing",
+      "Marketed By": "marketing",
+      "Mastered At": "mastering",
+      "Mixed At": "recording_facility",
+      "Phonographic Copyright (p)": "rights",
+      "Plated At": "lacquer",
+      "Pressed By": "pressing",
+      "Printed By": "manufacturing",
+      "Produced At": "recording_facility",
+      "Produced For": "rights",
+      "Published By": "rights",
+      "Record Company": "rights",
+      "Recorded At": "recording_facility",
+      "Recorded By": "recording_facility"
+    }
+  }
+}

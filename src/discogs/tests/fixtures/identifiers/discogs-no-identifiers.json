@@ -1,0 +1,15 @@
+{
+  "name": "discogs-no-identifiers",
+  "provider": "discogs",
+  "description": "A release carrying neither an identifier list nor a label entry still produces the complete empty block.",
+  "input": {},
+  "expected": {
+    "identifiers_version": "1",
+    "items": [],
+    "types": [],
+    "aliases": [],
+    "unmapped": {
+      "types": []
+    }
+  }
+}

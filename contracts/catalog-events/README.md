@@ -30,32 +30,70 @@ and the field is optional for a consumer to read. `fixture_payloads.releases` in
 `media` block the mapper produces for it, so `just contract` regenerates a fixture that
 documents the shape and `just contract-check` guards it from drifting out of date.
 
-## Vendored media taxonomy
+## The `identifiers` and `companies` fields
 
-`vocab/media-taxonomy.json` is **not generated**. It is the provider-neutral media
-vocabulary owned by the `design` repository at `taxonomy/media/v1/media-taxonomy.json`
-(see that repository's `taxonomy/media/README.md` and ADR 0007, "Canonical media
-taxonomy and media-neutral product core"), vendored into this repository verbatim, byte
-for byte. `vocab/source.json` beside it records the design commit and SHA-256 digest the
-copy was vendored from:
+Every `releases` event carries an `identifiers` block and a `companies` block, computed at
+the normalization boundary before the content hash from the release's own identifier, label,
+and company lists. `identifiers` maps each raw Discogs identifier type onto the closed
+vocabulary vendored in `vocab/identifier-types.json`, lifts a `catalog_number` entry from each
+label entry's catalogue number, and derives the `barcode`, `catalog_number`, and `matrix`
+aliases the release mints. `companies` maps each raw `entity_type_name` onto the role
+categories vendored in `vocab/company-roles.json`, keeping the raw role verbatim beside the
+category. See [ADR 0011, "Catalog identifiers, manufacturing credits, and release
+country"](https://github.com/groovemap-music/design/blob/main/docs/adr/0011-catalog-identifiers-and-manufacturing-credits.md)
+for the rationale, and `src/discogs/identifiers.rs` and `src/discogs/companies.rs` for the
+mappers that produce them.
+
+Each block takes the key its raw list held -- the field name ADR 0011 gives the event, and the
+path the persistence contract indexes. Nothing is lost: the value as received, the raw type
+string, and the raw role string all survive inside the block, which is the provenance record.
+`labels` is read for the catalogue numbers and left exactly as it was.
+
+Both are **additive within v1**: existing fields and the event schema are unchanged, and
+either field is optional for a consumer to read. `fixture_payloads.releases` in
+`definitions/discogs.json` carries the exact blocks the mappers produce for a representative
+release, so `just contract` regenerates a fixture that documents the shape and
+`tests/contract_identifiers_companies_fixture_test.rs` replays each block through its mapper
+and fails the moment the fixture and the mapper disagree.
+
+## Vendored vocabularies
+
+`vocab/` holds the vocabularies this producer maps against. None of them is generated.
+Each is owned by the `design` repository and vendored here verbatim, byte for byte:
+
+| Vendored file | Design path | Record |
+| --- | --- | --- |
+| `vocab/media-taxonomy.json` | `taxonomy/media/v1/media-taxonomy.json` | ADR 0007 |
+| `vocab/identifier-types.json` | `taxonomy/identifiers/v1/identifier-types.json` | ADR 0011 |
+| `vocab/company-roles.json` | `taxonomy/company-roles/v1/company-roles.json` | ADR 0011 |
+
+`vocab/source.json` beside them records, for each copy, the design commit and the
+SHA-256 digest it was vendored from:
 
 ```json
 {
-  "source": "design",
-  "path": "taxonomy/media/v1/media-taxonomy.json",
-  "commit": "<40-char design repo commit sha>",
-  "sha256": "<sha256 of the vendored file>"
+  "vocabularies": [
+    {
+      "file": "<vendored file name>",
+      "source": "design",
+      "path": "<design-repo-relative path>",
+      "commit": "<40-char design repo commit sha>",
+      "sha256": "<sha256 of the vendored file>"
+    }
+  ]
 }
 ```
 
-`just contract-check` fails if `vocab/media-taxonomy.json` is missing or its digest no
-longer matches `vocab/source.json`. `just contract` never writes or rewrites either file
--- both are edited only by hand, as part of a deliberate re-vendor.
+`just contract-check` fails if a recorded vocabulary is missing, if its digest no longer
+matches its record, or if `vocab/` holds a vocabulary file no record names -- an
+unrecorded copy would otherwise be compiled into a mapper unverified. `just contract`
+never writes or rewrites either the vocabularies or `source.json`; all of them are edited
+only by hand, as part of a deliberate re-vendor.
 
-### Updating the vendored copy
+### Updating a vendored copy
 
 1. In the design repository, pick the reviewed commit that should become the new source
-   and confirm the taxonomy file's digest:
+   and confirm the vocabulary file's digest:
 
    ```bash
    git -C <path-to-design-repo> rev-parse <commit>
@@ -69,7 +107,8 @@ longer matches `vocab/source.json`. `just contract` never writes or rewrites eit
       contracts/catalog-events/vocab/media-taxonomy.json
    ```
 
-3. Update `vocab/source.json` with the new commit sha (full 40 characters) and digest.
+3. Update that file's entry in `vocab/source.json` with the new commit sha (full 40
+   characters) and digest.
 4. Run `just check` (or at least `just contract-check`) to confirm the vendored copy and
    the source record agree.
 
