@@ -1,0 +1,52 @@
+{
+  "name": "discogs-malformed-entries",
+  "provider": "discogs",
+  "description": "Entries that are not plain objects, or that lack a name or a role, are skipped; an unusable id or entity type becomes null.",
+  "input": {
+    "companies": [
+      null,
+      [],
+      "Pressed By",
+      5,
+      {
+        "name": "   ",
+        "entity_type_name": "Pressed By"
+      },
+      {
+        "name": "Damont"
+      },
+      {
+        "name": "Damont",
+        "entity_type_name": "   "
+      },
+      {
+        "name": "Damont",
+        "entity_type_name": "Pressed By",
+        "id": 0,
+        "entity_type": "plant"
+      }
+    ]
+  },
+  "expected": {
+    "companies_version": "1",
+    "items": [
+      {
+        "name": "Damont",
+        "discogs_id": null,
+        "role": "Pressed By",
+        "role_category": "pressing",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": null
+        }
+      }
+    ],
+    "role_categories": [
+      "pressing"
+    ],
+    "unmapped": {
+      "roles": []
+    }
+  }
+}

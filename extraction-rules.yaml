@@ -165,6 +165,63 @@ rules:
           - Vinyl
       severity: warning
 
+    - name: identifier-type-not-recognized
+      description: "Identifier type is not in the vendored Discogs identifier vocabulary (contracts/catalog-events/vocab/identifier-types.json). The identifiers block maps it to `other` and records it under `unmapped.types`; this rule surfaces the same fact in the data-quality report. Refresh this enum by re-running the list of discogs.types keys after re-vendoring the vocabulary; see docs/extraction-rules-guide.md."
+      field: identifiers.identifier.@type
+      condition:
+        type: enum
+        values:
+          - "ASIN"
+          - "Barcode"
+          - "ISRC"
+          - "Label Code"
+          - "Mastering SID Code"
+          - "Matrix / Runout"
+          - "Mould SID Code"
+          - "Other"
+          - "Pressing Plant ID"
+          - "Price Code"
+          - "Rights Society"
+          - "SPARS Code"
+      severity: warning
+
+    - name: company-role-not-recognized
+      description: "Company role is not in the vendored Discogs company-role vocabulary (contracts/catalog-events/vocab/company-roles.json). The companies block maps it to `other` and records it under `unmapped.roles`; this rule surfaces the same fact in the data-quality report. Refresh this enum by re-running the list of discogs.roles keys after re-vendoring the vocabulary; see docs/extraction-rules-guide.md."
+      field: companies.company.entity_type_name
+      condition:
+        type: enum
+        values:
+          - "Copyright (c)"
+          - "Designed At"
+          - "Distributed By"
+          - "Duplicated By"
+          - "Edited At"
+          - "Engineered At"
+          - "Exported By"
+          - "Funded By"
+          - "Glass Mastered At"
+          - "Lacquer Cut At"
+          - "Licensed From"
+          - "Licensed Through"
+          - "Licensed To"
+          - "Made By"
+          - "Manufactured By"
+          - "Manufactured For"
+          - "Marketed By"
+          - "Mastered At"
+          - "Mixed At"
+          - "Phonographic Copyright (p)"
+          - "Plated At"
+          - "Pressed By"
+          - "Printed By"
+          - "Produced At"
+          - "Produced For"
+          - "Published By"
+          - "Record Company"
+          - "Recorded At"
+          - "Recorded By"
+      severity: warning
+
     # Note: years like 197 and 338 are already caught by year-out-of-range (< min 1860).
 
   artists:

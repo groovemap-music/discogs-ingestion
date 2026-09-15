@@ -1,0 +1,50 @@
+{
+  "name": "discogs-asin-and-isrc",
+  "provider": "discogs",
+  "description": "A retailer product number keeps its own type; a release-level recording code is a known string routed to other.",
+  "input": {
+    "identifiers": [
+      {
+        "type": "ASIN",
+        "value": "B000001234"
+      },
+      {
+        "type": "ISRC",
+        "value": "GBAYE0601498"
+      }
+    ]
+  },
+  "expected": {
+    "identifiers_version": "1",
+    "items": [
+      {
+        "type": "asin",
+        "value": "B000001234",
+        "description": null,
+        "source": {
+          "provider": "discogs",
+          "type": "ASIN",
+          "field": "identifiers"
+        }
+      },
+      {
+        "type": "other",
+        "value": "GBAYE0601498",
+        "description": null,
+        "source": {
+          "provider": "discogs",
+          "type": "ISRC",
+          "field": "identifiers"
+        }
+      }
+    ],
+    "types": [
+      "asin",
+      "other"
+    ],
+    "aliases": [],
+    "unmapped": {
+      "types": []
+    }
+  }
+}

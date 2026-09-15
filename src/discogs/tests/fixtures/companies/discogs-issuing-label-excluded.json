@@ -1,0 +1,25 @@
+{
+  "name": "discogs-issuing-label-excluded",
+  "provider": "discogs",
+  "description": "The issuing label is a label relation, not a company credit, so a release with labels and no companies has an empty block.",
+  "input": {
+    "companies": [],
+    "labels": [
+      {
+        "name": "RCA",
+        "catno": "PB 41447",
+        "entity_type": "1",
+        "entity_type_name": "Label",
+        "id": 895
+      }
+    ]
+  },
+  "expected": {
+    "companies_version": "1",
+    "items": [],
+    "role_categories": [],
+    "unmapped": {
+      "roles": []
+    }
+  }
+}

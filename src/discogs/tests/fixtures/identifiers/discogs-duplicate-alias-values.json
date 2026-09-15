@@ -1,0 +1,89 @@
+{
+  "name": "discogs-duplicate-alias-values",
+  "provider": "discogs",
+  "description": "The same barcode and the same catalogue number written two ways stay two items and become one alias each.",
+  "input": {
+    "identifiers": [
+      {
+        "type": "Barcode",
+        "value": "0123456789012"
+      },
+      {
+        "type": "Barcode",
+        "value": "012-345-678-9012"
+      }
+    ],
+    "labels": [
+      {
+        "name": "Factory",
+        "catno": "fac  73"
+      },
+      {
+        "name": "Factory",
+        "catno": "FAC 73"
+      }
+    ]
+  },
+  "expected": {
+    "identifiers_version": "1",
+    "items": [
+      {
+        "type": "barcode",
+        "value": "0123456789012",
+        "description": null,
+        "source": {
+          "provider": "discogs",
+          "type": "Barcode",
+          "field": "identifiers"
+        }
+      },
+      {
+        "type": "barcode",
+        "value": "012-345-678-9012",
+        "description": null,
+        "source": {
+          "provider": "discogs",
+          "type": "Barcode",
+          "field": "identifiers"
+        }
+      },
+      {
+        "type": "catalog_number",
+        "value": "fac  73",
+        "description": null,
+        "source": {
+          "provider": "discogs",
+          "type": null,
+          "field": "labels[].catno"
+        }
+      },
+      {
+        "type": "catalog_number",
+        "value": "FAC 73",
+        "description": null,
+        "source": {
+          "provider": "discogs",
+          "type": null,
+          "field": "labels[].catno"
+        }
+      }
+    ],
+    "types": [
+      "barcode",
+      "catalog_number"
+    ],
+    "aliases": [
+      {
+        "provider": "barcode",
+        "external_id": "0123456789012"
+      },
+      {
+        "provider": "catalog_number",
+        "external_id": "FAC 73"
+      }
+    ],
+    "unmapped": {
+      "types": []
+    }
+  }
+}

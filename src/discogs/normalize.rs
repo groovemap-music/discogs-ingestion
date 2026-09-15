@@ -204,6 +204,17 @@ fn normalize_release(record: &mut Value) {
         insert_if_nonempty(map, "extraartists", normalized);
     }
 
+    // identifiers and companies: the same container unwrap and de-prefixing every other list
+    // gets, so the canonical blocks (ADR 0011) read one flat shape. The raw `type` and
+    // `entity_type_name` strings are carried through untouched — the vocabularies map from
+    // them, and the blocks preserve them as the provenance record.
+    for (field, container_key) in [("identifiers", "identifier"), ("companies", "company")] {
+        if let Some(val) = map.remove(field) {
+            let normalized = normalize_item_list(&val, container_key);
+            insert_if_nonempty(map, field, normalized);
+        }
+    }
+
     // formats: unwrap_container then strip_at_prefixes on each
     if let Some(val) = map.remove("formats") {
         let items = unwrap_container(&val, "format");

@@ -1106,6 +1106,43 @@ fn test_format_not_recognized_known_value_no_violation() {
     assert!(should_skip_record(&config, "releases", &record).is_none());
 }
 
+/// The repository's own `extraction-rules.yaml`, compiled.
+fn real_rules() -> CompiledRulesConfig {
+    let rules_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("extraction-rules.yaml");
+    let config = RulesConfig::load(&rules_path).expect("the real rules file is readable");
+    CompiledRulesConfig::compile(config).expect("the real rules file compiles")
+}
+
+/// The enum values a named rule in the real `extraction-rules.yaml` carries.
+fn rule_enum_values(rule_name: &str) -> std::collections::BTreeSet<String> {
+    let rules_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("extraction-rules.yaml");
+    let rules_yaml = std::fs::read_to_string(&rules_path).unwrap_or_else(|e| panic!("failed to read {rules_path:?}: {e}"));
+    let config: RulesConfig = serde_yaml_ng::from_str(&rules_yaml).unwrap();
+    let releases_rules = config.rules.get("releases").expect("extraction-rules.yaml must define releases rules");
+    let rule = releases_rules
+        .iter()
+        .find(|r| r.name == rule_name)
+        .unwrap_or_else(|| panic!("extraction-rules.yaml must define a {rule_name} rule under rules.releases"));
+    assert!(matches!(rule.severity, Severity::Warning), "{rule_name} must be a warning: an unrecognised value is still published");
+    let RuleCondition::Enum { values } = &rule.condition else {
+        panic!("{rule_name} must use an enum condition");
+    };
+    values.iter().cloned().collect()
+}
+
+/// The keys of a `discogs.<section>` mapping in a vendored vocabulary.
+fn vendored_discogs_keys(vocabulary: &str, section: &str) -> std::collections::BTreeSet<String> {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("contracts/catalog-events/vocab").join(vocabulary);
+    let raw = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("failed to read {path:?}: {e}"));
+    let document: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    let mapping = document
+        .get("discogs")
+        .and_then(|discogs| discogs.get(section))
+        .and_then(|mapping| mapping.as_object())
+        .unwrap_or_else(|| panic!("{vocabulary} must have a discogs.{section} object"));
+    mapping.keys().cloned().collect()
+}
+
 /// Drift guard: the `format-not-recognized` enum in the real `extraction-rules.yaml`
 /// must always equal the set of Discogs format names in the vendored media taxonomy
 /// (`contracts/catalog-events/vocab/media-taxonomy.json`, `discogs.formats` keys). If
@@ -1113,36 +1150,100 @@ fn test_format_not_recognized_known_value_no_violation() {
 /// "Refreshing format-not-recognized" section of docs/extraction-rules-guide.md.
 #[test]
 fn test_format_not_recognized_enum_matches_vendored_taxonomy() {
-    let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-
-    let rules_path = manifest_dir.join("extraction-rules.yaml");
-    let rules_yaml = std::fs::read_to_string(&rules_path).unwrap_or_else(|e| panic!("failed to read {rules_path:?}: {e}"));
-    let config: RulesConfig = serde_yaml_ng::from_str(&rules_yaml).unwrap();
-    let releases_rules = config.rules.get("releases").expect("extraction-rules.yaml must define releases rules");
-    let rule = releases_rules
-        .iter()
-        .find(|r| r.name == "format-not-recognized")
-        .expect("extraction-rules.yaml must define a format-not-recognized rule under rules.releases");
-    let RuleCondition::Enum { values: rule_values } = &rule.condition else {
-        panic!("format-not-recognized must use an enum condition");
-    };
-    let rule_names: std::collections::BTreeSet<&str> = rule_values.iter().map(String::as_str).collect();
-
-    let taxonomy_path = manifest_dir.join("contracts/catalog-events/vocab/media-taxonomy.json");
-    let taxonomy_raw = std::fs::read_to_string(&taxonomy_path).unwrap_or_else(|e| panic!("failed to read {taxonomy_path:?}: {e}"));
-    let taxonomy: serde_json::Value = serde_json::from_str(&taxonomy_raw).unwrap();
-    let taxonomy_formats = taxonomy
-        .get("discogs")
-        .and_then(|d| d.get("formats"))
-        .and_then(|f| f.as_object())
-        .expect("media-taxonomy.json must have a discogs.formats object");
-    let taxonomy_names: std::collections::BTreeSet<&str> = taxonomy_formats.keys().map(String::as_str).collect();
-
     assert_eq!(
-        rule_names, taxonomy_names,
+        rule_enum_values("format-not-recognized"),
+        vendored_discogs_keys("media-taxonomy.json", "formats"),
         "format-not-recognized's enum values must exactly equal the Discogs format keys \
          vendored at contracts/catalog-events/vocab/media-taxonomy.json (discogs.formats)"
     );
+}
+
+/// Drift guard: the `identifier-type-not-recognized` enum must always equal the raw Discogs
+/// identifier type strings the vendored identifier vocabulary maps (ADR 0011). The rule and
+/// the mapper must agree on what "recognised" means, or the quality report would disagree
+/// with the block's own `unmapped.types`.
+#[test]
+fn test_identifier_type_not_recognized_enum_matches_vendored_vocabulary() {
+    assert_eq!(
+        rule_enum_values("identifier-type-not-recognized"),
+        vendored_discogs_keys("identifier-types.json", "types"),
+        "identifier-type-not-recognized's enum values must exactly equal the raw Discogs type keys \
+         vendored at contracts/catalog-events/vocab/identifier-types.json (discogs.types)"
+    );
+}
+
+/// Drift guard: the `company-role-not-recognized` enum must always equal the raw Discogs
+/// `entity_type_name` strings the vendored company-role vocabulary maps (ADR 0011).
+#[test]
+fn test_company_role_not_recognized_enum_matches_vendored_vocabulary() {
+    assert_eq!(
+        rule_enum_values("company-role-not-recognized"),
+        vendored_discogs_keys("company-roles.json", "roles"),
+        "company-role-not-recognized's enum values must exactly equal the raw Discogs role keys \
+         vendored at contracts/catalog-events/vocab/company-roles.json (discogs.roles)"
+    );
+}
+
+/// The two ADR 0011 rules fire on exactly the strings the vocabularies do not carry, and stay
+/// silent on the ones they route to `other` deliberately — the same verdict the blocks reach.
+#[test]
+fn test_identifier_and_company_rules_flag_only_unrecognized_strings() {
+    let config = real_rules();
+
+    let record = json!({
+        "@id": "1000",
+        "identifiers": {"identifier": [
+            {"@type": "Barcode", "@value": "5012394144777"},
+            {"@type": "ISRC", "@value": "GBAYE0601498"},
+            {"@type": "Depósito Legal", "@value": "M-12345-1987"}
+        ]},
+        "companies": {"company": [
+            {"name": "Damont", "entity_type_name": "Pressed By"},
+            {"name": "Stylorouge", "entity_type_name": "Designed At"},
+            {"name": "Sarm West", "entity_type_name": "Remixed At"}
+        ]}
+    });
+
+    let violations = evaluate_rules(&config, "releases", &record);
+    let flagged: Vec<(&str, &str)> = violations
+        .iter()
+        .filter(|violation| violation.rule_name.ends_with("-not-recognized"))
+        .map(|violation| (violation.rule_name.as_str(), violation.field_value.as_str()))
+        .collect();
+
+    assert_eq!(
+        flagged,
+        vec![("identifier-type-not-recognized", "Depósito Legal"), ("company-role-not-recognized", "Remixed At")],
+        "only the strings the vocabularies do not carry are flagged"
+    );
+    // A warning never skips the record: the block still publishes the unmapped value.
+    assert!(should_skip_record(&config, "releases", &record).is_none());
+}
+
+/// A release stating neither list is silent: an absent field is not an unrecognised value.
+#[test]
+fn test_identifier_and_company_rules_stay_silent_without_the_fields() {
+    let config = real_rules();
+    let violations = evaluate_rules(&config, "releases", &json!({"@id": "1000", "title": "A Release"}));
+    assert!(
+        !violations.iter().any(|violation| violation.rule_name.ends_with("-not-recognized")),
+        "a release with no identifiers and no companies must not be flagged"
+    );
+}
+
+/// The quality report counts the two warnings per rule, so an operator reads the unmapped
+/// coverage without opening a single event.
+#[test]
+fn test_quality_report_counts_the_unmapped_warnings() {
+    let mut report = QualityReport::new();
+    for rule_name in ["identifier-type-not-recognized", "company-role-not-recognized"] {
+        report.record_violation("releases", rule_name, &Severity::Warning);
+        report.record_violation("releases", rule_name, &Severity::Warning);
+    }
+    let rendered = report.format_summary("20260101");
+    assert!(rendered.contains("identifier-type-not-recognized"), "the report must name the identifier rule: {rendered}");
+    assert!(rendered.contains("company-role-not-recognized"), "the report must name the company rule: {rendered}");
+    assert!(rendered.contains("4 warning"), "both rules' warnings must be counted: {rendered}");
 }
 
 // ── Task 1: YAML Schema — skip_records & filters ────────────────────

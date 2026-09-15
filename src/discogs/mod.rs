@@ -3,7 +3,9 @@
 //! The public operations are the provider capability consumed by the binary
 //! composition root. Dependencies point inward to the provider-neutral runtime.
 
+pub mod companies;
 pub mod downloader;
+pub mod identifiers;
 pub mod local_manifest;
 pub mod media;
 pub mod normalize;
@@ -714,8 +716,13 @@ pub async fn message_normalizer(mut receiver: mpsc::Receiver<DataMessage>, sende
         // once, at the producer's normalization boundary — from the normalized `formats`
         // list, which stays untouched as the provenance record. It is attached before the
         // hash so the hash covers it and consumers detect a vocabulary-driven change.
+        // Releases additionally carry the canonical identifiers and companies blocks
+        // (ADR 0011), computed from the same normalized lists and attached the same way,
+        // so the hash covers a changed marking or a changed manufacturing credit too.
         if matches!(data_type, DataType::Releases) {
             self::media::attach_media_block(&mut message.data);
+            self::identifiers::attach_identifiers_block(&mut message.data);
+            self::companies::attach_companies_block(&mut message.data);
         }
         message.sha256 = calculate_content_hash(&message.data);
         if sender.send(message).await.is_err() {

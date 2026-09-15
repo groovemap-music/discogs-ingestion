@@ -1,0 +1,50 @@
+{
+  "name": "discogs-label-code-and-rights-society",
+  "provider": "discogs",
+  "description": "A label code and a rights society: carried in the block, mapped to their own types, and minting no alias.",
+  "input": {
+    "identifiers": [
+      {
+        "type": "Label Code",
+        "value": "LC 0316"
+      },
+      {
+        "type": "Rights Society",
+        "value": "BIEM/GEMA"
+      }
+    ]
+  },
+  "expected": {
+    "identifiers_version": "1",
+    "items": [
+      {
+        "type": "label_code",
+        "value": "LC 0316",
+        "description": null,
+        "source": {
+          "provider": "discogs",
+          "type": "Label Code",
+          "field": "identifiers"
+        }
+      },
+      {
+        "type": "rights_society",
+        "value": "BIEM/GEMA",
+        "description": null,
+        "source": {
+          "provider": "discogs",
+          "type": "Rights Society",
+          "field": "identifiers"
+        }
+      }
+    ],
+    "types": [
+      "label_code",
+      "rights_society"
+    ],
+    "aliases": [],
+    "unmapped": {
+      "types": []
+    }
+  }
+}

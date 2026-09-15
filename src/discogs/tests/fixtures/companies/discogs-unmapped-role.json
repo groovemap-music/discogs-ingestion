@@ -1,0 +1,59 @@
+{
+  "name": "discogs-unmapped-role",
+  "provider": "discogs",
+  "description": "A role string the vocabulary does not carry falls to other and is additionally recorded under unmapped.",
+  "input": {
+    "companies": [
+      {
+        "name": "Sarm West",
+        "catno": "",
+        "entity_type": "28",
+        "entity_type_name": "Remixed At",
+        "id": 51234
+      },
+      {
+        "name": "Damont",
+        "catno": "",
+        "entity_type": "17",
+        "entity_type_name": "Pressed By",
+        "id": 12345
+      }
+    ]
+  },
+  "expected": {
+    "companies_version": "1",
+    "items": [
+      {
+        "name": "Sarm West",
+        "discogs_id": 51234,
+        "role": "Remixed At",
+        "role_category": "other",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "28"
+        }
+      },
+      {
+        "name": "Damont",
+        "discogs_id": 12345,
+        "role": "Pressed By",
+        "role_category": "pressing",
+        "catno": null,
+        "source": {
+          "provider": "discogs",
+          "entity_type": "17"
+        }
+      }
+    ],
+    "role_categories": [
+      "other",
+      "pressing"
+    ],
+    "unmapped": {
+      "roles": [
+        "Remixed At"
+      ]
+    }
+  }
+}
