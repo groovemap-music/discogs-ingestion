@@ -15,13 +15,11 @@ fn test_new_state_marker() {
 fn test_download_phase_lifecycle() {
     let mut marker = StateMarker::new("20260101".to_string());
 
-    // Start download
     marker.start_download(4);
     assert_eq!(marker.download_phase.status, PhaseStatus::InProgress);
     assert_eq!(marker.download_phase.files_total, 4);
     assert!(marker.download_phase.started_at.is_some());
 
-    // Download files
     marker.file_downloaded("discogs_20260101_artists.xml.gz", 1000);
     marker.file_downloaded("discogs_20260101_labels.xml.gz", 2000);
     assert_eq!(marker.download_phase.files_downloaded, 2);
@@ -202,13 +200,11 @@ async fn test_load_and_save_roundtrip() {
     let temp_file = NamedTempFile::new().unwrap();
     let path = temp_file.path();
 
-    // Create and save a marker
     let mut marker = StateMarker::new("20260101".to_string());
     marker.start_download(4);
     marker.file_downloaded("discogs_20260101_artists.xml.gz", 1000);
     marker.save(path).await.unwrap();
 
-    // Load it back
     let loaded = StateMarker::load(path).await.unwrap();
     assert!(loaded.is_some());
     let loaded = loaded.unwrap();
