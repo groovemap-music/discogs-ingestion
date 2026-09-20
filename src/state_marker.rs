@@ -506,7 +506,6 @@ impl StateMarker {
         self.processing_phase.files_processed += 1;
         self.sync_phase_totals();
 
-        // Update summary
         if let Some(data_type) = extract_data_type(filename) {
             self.summary.files_by_type.insert(data_type, PhaseStatus::Completed);
         }
