@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://groovemap.music/schemas/identifier-types-v1.json",
+  "title": "GrooveMap catalog identifier vocabulary",
+  "description": "The closed identifier-type vocabulary, the alias namespaces it mints provider aliases for, and the raw Discogs and MusicBrainz strings each type maps from (ADR 0011).",
+  "x-license": "MIT",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["vocabulary_version", "license", "unmapped_type", "identifier_types", "alias_namespaces", "normalizations", "discogs", "musicbrainz"],
+  "properties": {
+    "vocabulary_version": { "const": "1" },
+    "license": { "const": "MIT" },
+    "unmapped_type": { "const": "other" },
+    "identifier_types": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label", "alias_provider", "description"],
+        "properties": {
+          "id": { "$ref": "#/$defs/identifierTypeId" },
+          "label": { "$ref": "#/$defs/label" },
+          "alias_provider": {
+            "oneOf": [{ "$ref": "#/$defs/aliasProviderId" }, { "type": "null" }]
+          },
+          "description": { "$ref": "#/$defs/description" }
+        }
+      }
+    },
+    "alias_namespaces": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["provider", "type", "normalization", "alias_source", "description"],
+        "properties": {
+          "provider": { "$ref": "#/$defs/aliasProviderId" },
+          "type": { "$ref": "#/$defs/identifierTypeId" },
+          "normalization": { "$ref": "#/$defs/normalizationId" },
+          "alias_source": { "const": "catalog" },
+          "description": { "$ref": "#/$defs/description" }
+        }
+      }
+    },
+    "normalizations": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "description"],
+        "properties": {
+          "id": { "$ref": "#/$defs/normalizationId" },
+          "description": { "$ref": "#/$defs/description" }
+        }
+      }
+    },
+    "discogs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identifier_field", "catalog_number_field", "absent_catalog_number", "types"],
+      "properties": {
+        "identifier_field": { "const": "identifiers" },
+        "catalog_number_field": { "const": "labels[].catno" },
+        "absent_catalog_number": { "const": "none" },
+        "types": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "type": "string", "minLength": 1 },
+          "additionalProperties": { "$ref": "#/$defs/identifierTypeId" }
+        }
+      }
+    },
+    "musicbrainz": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["barcode_field", "catalog_number_field", "types"],
+      "properties": {
+        "barcode_field": { "const": "barcode" },
+        "catalog_number_field": { "const": "label-info[].catalog-number" },
+        "types": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "type": "string", "minLength": 1 },
+          "additionalProperties": { "$ref": "#/$defs/identifierTypeId" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "identifierTypeId": {
+      "enum": ["barcode", "matrix_runout", "label_code", "rights_society", "asin", "other", "catalog_number"]
+    },
+    "aliasProviderId": { "enum": ["barcode", "catalog_number", "matrix"] },
+    "normalizationId": { "enum": ["digits_only", "upper_collapse_space", "collapse_space"] },
+    "label": { "type": "string", "minLength": 1 },
+    "description": { "type": "string", "minLength": 1 }
+  }
+}
