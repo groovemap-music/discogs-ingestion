@@ -11,8 +11,22 @@
       "file": "identifier-types.json",
       "source": "design",
       "path": "taxonomy/identifiers/v1/identifier-types.json",
-      "commit": "d06e1571f6acce6a246e4c0b6be866ecbea44c72",
-      "sha256": "2df8a691173f779b2d2076f31e8abd01d160e51f4f371de99f1f8e1cb12f26a5"
+      "commit": "5bfdf1005c5d95c99143e8c2acd189e127e1cb10",
+      "sha256": "87b844a20f35d45e7ba176df58d6ccf3d7bc88beecda90457b1a2afb3432fb34"
+    },
+    {
+      "file": "identifier-types.schema.json",
+      "source": "design",
+      "path": "taxonomy/identifiers/v1/identifier-types.schema.json",
+      "commit": "5bfdf1005c5d95c99143e8c2acd189e127e1cb10",
+      "sha256": "8f15b6afe280b24d906dd0105839ccf2f278a144833bec1dcf99d002936b24e5"
+    },
+    {
+      "file": "identifier-block.schema.json",
+      "source": "design",
+      "path": "taxonomy/identifiers/v1/identifier-block.schema.json",
+      "commit": "5bfdf1005c5d95c99143e8c2acd189e127e1cb10",
+      "sha256": "b1370114c3f25dff6e3a314817de0a6e6d15b580ac508d3857fc9596c67a91a2"
     },
     {
       "file": "media-taxonomy.json",
