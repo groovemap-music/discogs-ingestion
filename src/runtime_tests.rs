@@ -12,7 +12,6 @@ async fn test_state_marker_file_tracking() {
     marker.start_file_processing("discogs_20230101_artists.xml.gz");
     assert_eq!(marker.processing_phase.current_file, Some("discogs_20230101_artists.xml.gz".to_string()));
 
-    // Test file completion
     marker.complete_file_processing("discogs_20230101_artists.xml.gz", 1000);
     let file_progress = marker.processing_phase.progress_by_file.get("discogs_20230101_artists.xml.gz");
     assert!(file_progress.is_some());
@@ -86,7 +85,6 @@ async fn test_message_batcher_basic() {
     let marker_path = temp_dir.path().join(".extraction_status_20230101.json");
     let state_marker = Arc::new(tokio::sync::Mutex::new(StateMarker::new("20230101".to_string())));
 
-    // Send some test messages
     for i in 0..5 {
         let message =
             DataMessage { sha256: format!("sha{}", i), data: serde_json::json!({ "test": format!("test{}", i) }), id: i.to_string(), raw_xml: None };
@@ -94,7 +92,6 @@ async fn test_message_batcher_basic() {
     }
     drop(parse_sender);
 
-    // Run batcher
     let batcher_config = BatcherConfig {
         batch_size: 3,
         data_type: DataType::Artists,
