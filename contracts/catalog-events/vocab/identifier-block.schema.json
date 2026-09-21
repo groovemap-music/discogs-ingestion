@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://groovemap.music/schemas/identifier-block-v1.json",
+  "title": "GrooveMap canonical identifiers block",
+  "description": "The additive identifiers object a producer attaches to a releases event before the content hash, and that every release-shaped store carries (ADR 0011).",
+  "x-license": "MIT",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["identifiers_version", "items", "types", "aliases", "unmapped"],
+  "properties": {
+    "identifiers_version": { "const": "1" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "value", "description", "source"],
+        "properties": {
+          "type": { "$ref": "#/$defs/identifierTypeId" },
+          "value": { "type": "string", "minLength": 1 },
+          "description": { "type": ["string", "null"], "minLength": 1 },
+          "source": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["provider", "type", "field"],
+            "properties": {
+              "provider": { "enum": ["discogs", "musicbrainz"] },
+              "type": { "type": ["string", "null"], "minLength": 1 },
+              "field": {
+                "description": "The upstream field an item's value was read from. `identifiers` and `labels[].catno` are Discogs release resource fields; `barcode` and `label-info[].catalog-number` are the corresponding fields on a MusicBrainz release resource (ws/2/release), each carrying at most one identifier per release rather than a typed list.",
+                "enum": ["identifiers", "labels[].catno", "barcode", "label-info[].catalog-number"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "types": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/identifierTypeId" }
+    },
+    "aliases": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["provider", "external_id"],
+        "properties": {
+          "provider": { "enum": ["barcode", "catalog_number", "matrix"] },
+          "external_id": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "unmapped": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["types"],
+      "properties": {
+        "types": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "identifierTypeId": {
+      "enum": ["barcode", "matrix_runout", "label_code", "rights_society", "asin", "other", "catalog_number"]
+    }
+  }
+}

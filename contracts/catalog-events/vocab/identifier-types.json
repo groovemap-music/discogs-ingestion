@@ -101,5 +101,13 @@
       "Rights Society": "rights_society",
       "SPARS Code": "other"
     }
+  },
+  "musicbrainz": {
+    "barcode_field": "barcode",
+    "catalog_number_field": "label-info[].catalog-number",
+    "types": {
+      "barcode": "barcode",
+      "catalog-number": "catalog_number"
+    }
   }
 }
