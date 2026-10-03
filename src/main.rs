@@ -2,7 +2,7 @@ use anyhow::Result;
 use clap::Parser;
 use extractor::discogs::rules;
 use extractor::discogs::rules::RulesConfig;
-use extractor::{config::ExtractorConfig, discogs, health::HealthServer, runtime, telemetry};
+use extractor::{config::ExtractorConfig, discogs, health::HealthServer, logging::EnvironmentJson, runtime, telemetry};
 use std::sync::Arc;
 use tokio::signal;
 use tokio::sync::Mutex;
@@ -45,7 +45,7 @@ async fn main() -> Result<()> {
 
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(filter))
-        .with(tracing_subscriber::fmt::layer().with_target(false).with_thread_ids(false).with_line_number(true).json())
+        .with(tracing_subscriber::fmt::layer().json().event_format(EnvironmentJson::new(std::env::var("ENVIRONMENT").ok())))
         // `Option<Layer>` is itself a layer: `None` costs nothing per span, so a disabled
         // trace pipeline leaves the logging path exactly as it was.
         .with(trace_provider.as_ref().map(telemetry::trace_layer))
