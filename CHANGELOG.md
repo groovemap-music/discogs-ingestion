@@ -3,6 +3,18 @@
 All notable changes to this repository will be recorded here by Commitizen from
 Conventional Commits.
 
+## v0.4.0 (2026-10-03)
+
+### Feat
+
+- **contracts**: carry the identifiers and companies blocks in release fixtures
+- **discogs**: attach the canonical identifiers and companies blocks
+- **contracts**: vendor the identifier and company-role vocabularies
+
+### Fix
+
+- **logging**: include deployment environment in JSON events
+
 ## v0.3.1 (2026-09-14)
 
 ### Fix
