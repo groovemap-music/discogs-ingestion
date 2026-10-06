@@ -8,10 +8,11 @@ updates:
     labels: [dependencies, github-actions]
     open-pull-requests-limit: 5
     groups:
-      github-actions:
-        patterns: ["*"]
-      github-actions-security:
+      actions-security:
         applies-to: security-updates
+        patterns: ["*"]
+      actions-version:
+        applies-to: version-updates
         patterns: ["*"]
   - package-ecosystem: cargo
     directory: /
@@ -21,10 +22,11 @@ updates:
     labels: [dependencies, rust]
     open-pull-requests-limit: 10
     groups:
-      rust:
-        patterns: ["*"]
-      rust-security:
+      cargo-security:
         applies-to: security-updates
+        patterns: ["*"]
+      cargo-version:
+        applies-to: version-updates
         patterns: ["*"]
   - package-ecosystem: docker
     directory: /
@@ -34,8 +36,9 @@ updates:
     labels: [dependencies, docker]
     open-pull-requests-limit: 5
     groups:
-      docker:
-        patterns: ["*"]
       docker-security:
         applies-to: security-updates
+        patterns: ["*"]
+      docker-version:
+        applies-to: version-updates
         patterns: ["*"]
