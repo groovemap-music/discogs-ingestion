@@ -38,9 +38,9 @@ else the Docker build context depends on, since `just check` alone won't catch a
 
 ### Compiler cache
 
-Rust builds go through [sccache](https://github.com/mozilla/sccache). `.cargo/config.toml`
-sets `rustc-wrapper = "sccache"` and `just bootstrap` installs the pinned version from
-`.mise.toml`, so every `cargo` recipe reuses previously compiled objects instead of
+Rust builds go through [sccache](https://github.com/mozilla/sccache). `.mise.toml`
+pins sccache and sets `RUSTC_WRAPPER=sccache` in its `[env]` table (mise must be activated),
+and `just bootstrap` installs it, so every `cargo` recipe reuses previously compiled objects instead of
 rebuilding them after a toolchain or dependency change.
 
 The cache lives on local disk outside the repository: `~/Library/Caches/Mozilla.sccache`

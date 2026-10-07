@@ -4,3 +4,9 @@ just = "1.57.0"
 python = "3.14.7"
 sccache = "0.17.0"
 uv = "0.12.5"
+
+# Route rustc through sccache wherever mise is active (local shells, `mise exec`, CI via
+# jdx/mise-action). Deliberately NOT in .cargo/config.toml: a committed `rustc-wrapper`
+# breaks every cargo run in an environment without sccache, e.g. Dependabot's updater.
+[env]
+RUSTC_WRAPPER = "sccache"
