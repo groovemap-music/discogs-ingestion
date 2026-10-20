@@ -3,7 +3,7 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 cargo_audit_tool := "cargo:cargo-audit@0.22.2"
 cargo_cyclonedx_tool := "cargo:cargo-cyclonedx@0.5.9"
 cargo_deny_tool := "cargo:cargo-deny@0.20.2"
-cargo_llvm_cov_tool := "cargo:cargo-llvm-cov@0.9.0"
+cargo_llvm_cov_tool := "cargo:cargo-llvm-cov@0.9.1"
 
 default:
     @just --list
