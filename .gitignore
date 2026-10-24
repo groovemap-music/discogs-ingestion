@@ -10,3 +10,5 @@
 *.p12
 *.age
 .DS_Store
+__pycache__/
+*.py[co]
