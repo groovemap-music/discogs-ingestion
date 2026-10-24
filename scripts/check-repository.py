@@ -12,7 +12,8 @@ from urllib.parse import unquote, urlsplit
 
 
 ROOT = Path(__file__).resolve().parents[1]
-AUTOMATION_REVISION = "833cb464507678c38ab78bd4718ce697399463e9"
+AUTOMATION_CI_REVISION = "dbf22ed83d486e9484fc8c6385c7c3e5995700e4"
+AUTOMATION_RELEASE_REVISION = "833cb464507678c38ab78bd4718ce697399463e9"
 
 
 def require(condition: bool, message: str) -> None:
@@ -139,11 +140,11 @@ ci_workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="ut
 release_workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
 automation_ci = (
     "groovemap-music/automation/.github/workflows/reusable-ci.yml@"
-    f"{AUTOMATION_REVISION}"
+    f"{AUTOMATION_CI_REVISION}"
 )
 automation_release = (
     "groovemap-music/automation/.github/workflows/reusable-release.yml@"
-    f"{AUTOMATION_REVISION}"
+    f"{AUTOMATION_RELEASE_REVISION}"
 )
 
 require(f"uses: {automation_ci}" in ci_workflow, "CI must pin the reviewed shared workflow commit")
