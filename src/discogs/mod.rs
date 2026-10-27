@@ -42,7 +42,7 @@ pub async fn process_discogs_data(
     state: Arc<RwLock<ExtractorState>>,
     shutdown: Arc<tokio::sync::Notify>,
     // Pollable shutdown flag (set by the loop's monitor task on SIGTERM/SIGINT). Checked between
-    // files so a signal delivered mid-run stops starting new files instead of being lost. (cu2.44)
+    // files so a signal delivered mid-run stops starting new files instead of being lost.
     shutdown_flag: Arc<AtomicBool>,
     force_reprocess: bool,
     downloader: &mut dyn DataSource,
@@ -53,7 +53,7 @@ pub async fn process_discogs_data(
     let extraction_started_at = chrono::Utc::now();
 
     // Mirror of the MusicBrainz guard: never begin a new run (status Running, S3 listing,
-    // multi-GB downloads) when shutdown has already been requested. (discogsography-l114)
+    // multi-GB downloads) when shutdown has already been requested.
     if shutdown_flag.load(Ordering::SeqCst) {
         info!("🛑 Shutdown requested, not starting Discogs extraction");
         return Ok(false);
@@ -155,7 +155,7 @@ pub async fn process_discogs_data(
         // Rehydrate the per-run progress counters from the persisted per-file progress so the
         // /health endpoint reports true totals for types already completed before the crash.
         // Those files are skipped (pending_files) and never re-incremented this run, so without
-        // this they would surface as 0 on the dashboard. (cu2.92)
+        // this they would surface as 0 on the dashboard.
         {
             let mut s = state.write().await;
             for (file_name, file_state) in &state_marker.processing_phase.progress_by_file {
@@ -198,7 +198,7 @@ pub async fn process_discogs_data(
             // Completed, every later cycle would Skip, and the completion signal would be
             // lost forever. Mirror the normal completion path: send first, finalize on
             // success, and on failure leave overall_status non-Completed so the next
-            // cycle re-enters via Continue and retries. (cu2.42)
+            // cycle re-enters via Continue and retries.
             state_marker.complete_processing();
             state_marker.save(&marker_path).await?;
 
@@ -239,7 +239,7 @@ pub async fn process_discogs_data(
                 // default) while the health endpoint, dashboard, and logs all claimed
                 // success. The normal completion path treats the identical failure as a
                 // failure, which escalates to the cooldown-restart on the initial run and
-                // retries within minutes (discogsography-d58d).
+                // retries within minutes.
                 broadcast_ok = false;
             }
         }
@@ -279,7 +279,7 @@ pub async fn process_discogs_data(
             // Graceful shutdown: stop starting new files once a SIGTERM/SIGINT arrives. Files
             // already past this guard run to completion; skipped files never call
             // start_file_processing, so they stay pending in the state marker and a restart
-            // resumes them. (cu2.44)
+            // resumes them.
             if shutdown_flag.load(Ordering::SeqCst) {
                 info!("🛑 Shutdown requested — skipping not-yet-started file: {}", file);
                 telemetry::record_file_outcome(telemetry::FileOutcome::Skipped);
@@ -329,7 +329,7 @@ pub async fn process_discogs_data(
     // A shutdown signal delivered mid-run is a graceful stop, not a processing failure: in-flight
     // files (already past the per-task guard) finish, but files skipped by that guard stay pending.
     // Fold it into `success` so the completion/broadcast/status logic below does NOT finalize the
-    // run — while logging it as a shutdown rather than an error. (cu2.44)
+    // run — while logging it as a shutdown rather than an error.
     let shutdown_requested = shutdown_flag.load(Ordering::SeqCst);
     if shutdown_requested {
         warn!("🛑 Shutdown requested during Discogs processing — saving progress for resume, not finalizing this run");
@@ -367,7 +367,7 @@ pub async fn process_discogs_data(
             // process_discogs_data call and only tallies files processed in THIS run, so
             // after a crash-and-resume the types completed in an earlier session (skipped
             // via pending_files) would report 0. progress_by_file holds the true totals for
-            // every completed file — matching the all-files-already-processed early path. (cu2.92)
+            // every completed file — matching the all-files-already-processed early path.
             drop(s); // Release read lock before locking the state marker / async MQ operations
             let record_counts = {
                 let state_marker = state_marker_arc.lock().await;
@@ -474,7 +474,7 @@ pub async fn process_single_file(
 
         // Always-on normalization/hashing stage sits between the (optional) validator / parser and
         // the batcher, so published records carry the normalized shape and a real sha256 in BOTH the
-        // rules and no-rules pipelines. (cu2.43)
+        // rules and no-rules pipelines.
         let (normalized_sender, normalized_receiver) = mpsc::channel::<DataMessage>(config.queue_size);
 
         let validator_handle = if let Some(rules) = compiled_rules {
@@ -543,7 +543,7 @@ pub async fn process_single_file(
             Some(total_count)
         } else {
             // parser -> normalizer (normalize + hash) -> batcher — no validator, but normalization
-            // and hashing still happen so consumers receive the same shape as the rules path. (cu2.43)
+            // and hashing still happen so consumers receive the same shape as the rules path.
             let parser_handle = tokio::spawn({
                 let file_path = config.discogs_root.join(file_name);
                 let parse_span = telemetry::parse_span();
@@ -676,7 +676,7 @@ pub async fn message_validator(
         // paths like "genres.genre" that match the raw XML structure. Normalization and
         // content hashing are NOT done here anymore: they run unconditionally in
         // `message_normalizer`, downstream of this optional stage, so they happen even when
-        // DATA_QUALITY_RULES is unset and this validator never runs. (cu2.43)
+        // DATA_QUALITY_RULES is unset and this validator never runs.
         let violations = evaluate_rules(&rules, data_type, &message.data);
 
         for violation in &violations {
@@ -705,7 +705,6 @@ pub async fn message_validator(
 /// container wrappers) with an empty `sha256`. That crashed graphinator (AttributeError iterating
 /// container dicts) and defeated change detection (`"" == ""` skips every future update). Running
 /// this stage in both branches keeps the published shape identical regardless of rules config.
-/// (cu2.43)
 pub async fn message_normalizer(mut receiver: mpsc::Receiver<DataMessage>, sender: mpsc::Sender<DataMessage>, data_type: DataType) -> Result<()> {
     let data_type_str = data_type.as_str();
     while let Some(mut message) = receiver.recv().await {
@@ -767,7 +766,7 @@ pub async fn run_extraction_loop(
     // Convert the one-shot shutdown Notify into a pollable flag. Without this a SIGTERM delivered
     // during process_discogs_data (hours of multi-GB XML) is lost: notify_waiters() wakes only
     // currently-parked waiters and stores no permit, so the periodic loop's fresh shutdown arm
-    // never fires and the process enters the multi-day sleep, unstoppable. (cu2.44)
+    // never fires and the process enters the multi-day sleep, unstoppable.
     let shutdown_flag = spawn_shutdown_flag_monitor(shutdown.clone());
 
     // Local manifests are an explicit operator/test-only, one-shot input seam. They still
@@ -798,7 +797,7 @@ pub async fn run_extraction_loop(
     .await?;
 
     // A shutdown during the initial run is a clean exit, not a failure — returning Err would send
-    // main into the failure cooldown + non-zero exit. Short-circuit shutdown to Ok. (cu2.44/cu2.45)
+    // main into the failure cooldown + non-zero exit. Short-circuit shutdown to Ok.
     initial_run_outcome(success, shutdown_flag.load(Ordering::SeqCst), "Discogs")?;
 
     info!("✅ Initial data processing completed successfully");
@@ -807,7 +806,7 @@ pub async fn run_extraction_loop(
     loop {
         // If a shutdown arrived during processing (or between iterations), stop before sleeping.
         // The periodic select! below also has a shutdown arm for signals that arrive mid-sleep,
-        // but this poll catches signals delivered while process_discogs_data was running. (cu2.44)
+        // but this poll catches signals delivered while process_discogs_data was running.
         if shutdown_flag.load(Ordering::SeqCst) {
             info!("🛑 Shutdown detected, exiting Discogs periodic check loop");
             break;
@@ -839,7 +838,7 @@ pub async fn run_extraction_loop(
                         // The run never starts, so nothing downstream would ever move the
                         // status off Waiting. Record the failure so /health reports a
                         // terminal, non-success state instead of a parked one that the
-                        // API's extraction tracker reads as success (discogsography-exnk).
+                        // API's extraction tracker reads as success.
                         reset_status_after_failed_check(&state).await;
                         continue;
                     }
@@ -855,7 +854,7 @@ pub async fn run_extraction_loop(
                         error!("❌ Periodic check failed: {}", e);
                         // Backstop: an early `?` in process_discogs_data leaves status at Running.
                         // Reset to Failed so /trigger recovery is not wedged for the whole
-                        // periodic sleep and /health reports the failed run. (cu2.41)
+                        // periodic sleep and /health reports the failed run.
                         reset_status_after_failed_check(&state).await;
                     }
                 }
@@ -871,7 +870,7 @@ pub async fn run_extraction_loop(
                         // lost. Without a status write the extractor stays parked at Waiting
                         // forever and the API's extraction tracker records the phantom run as
                         // finished — with the PREVIOUS run's record counts, which makes the
-                        // false success look entirely convincing (discogsography-exnk).
+                        // false success look entirely convincing.
                         reset_status_after_failed_check(&state).await;
                         continue;
                     }
@@ -881,7 +880,7 @@ pub async fn run_extraction_loop(
                     Ok(false) => error!("❌ Triggered extraction completed with errors"),
                     Err(e) => {
                         error!("❌ Triggered extraction failed: {}", e);
-                        reset_status_after_failed_check(&state).await; // (cu2.41)
+                        reset_status_after_failed_check(&state).await;
                     }
                 }
             }

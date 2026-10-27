@@ -239,7 +239,7 @@ impl StateMarker {
     /// (dirty writeback runs every ~5-30s). The marker then comes back zero-length or
     /// truncated, `load` treats any parse failure as "start fresh", and the extractor
     /// re-downloads and re-publishes a whole multi-GB dump — exactly what the
-    /// tmp+rename design was meant to prevent (discogsography-mm27).
+    /// tmp+rename design was meant to prevent.
     ///
     /// So: fsync the temp file's contents BEFORE the rename, then fsync the parent
     /// directory AFTER it so the rename itself is durable. The downloader already does

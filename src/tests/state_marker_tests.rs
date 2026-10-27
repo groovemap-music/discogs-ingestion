@@ -363,7 +363,7 @@ fn test_complete_extraction_without_download_start() {
     assert_eq!(marker.summary.overall_status, PhaseStatus::Completed);
 }
 
-// Regression: discogsography-cu2.2 — a resumed extraction must broadcast the ORIGINAL
+// Regression: a resumed extraction must broadcast the ORIGINAL
 // processing start time, not the restarted process's now(). If it used a fresh start
 // time, the tableinator stale-row purge would delete every row written before the
 // restart (mass data loss). The extractor derives the start time it sends from
@@ -409,7 +409,7 @@ async fn test_resume_preserves_original_processing_start_time() {
     assert!(!pending.contains(&"discogs_20260101_artists.xml.gz".to_string()));
 }
 
-// Regression: discogsography-cu2.2 — the "all files already processed" completion path
+// Regression: the "all files already processed" completion path
 // (a crash lands after every file finished but before the completion broadcast). On
 // restart, pending_files is empty and no data is re-sent, yet extraction_complete still
 // fires. It must carry the original processing start time so the purge stays sound.
@@ -433,7 +433,7 @@ async fn test_all_files_complete_before_crash_keeps_original_start_time() {
     assert_eq!(resumed.processing_phase.started_at, Some(original_started_at));
 }
 
-/// Regression for discogsography-21tg: a resumed run re-enters the download phase on
+/// Regression: a resumed run re-enters the download phase on
 /// every cycle (to re-verify already-present dumps). A crash inside that window left
 /// `download_phase = InProgress` on disk, which used to demote the whole marker to
 /// Reprocess and wipe every completed file. Completed processing progress must survive.
@@ -514,7 +514,7 @@ fn marker_with_processed_file(filename: &str, checksum: &str, records: u64) -> S
 
 #[test]
 fn test_redownloaded_bytes_requeue_that_file() {
-    // discogsography-qhel regression: when a file is re-downloaded because its previously
+    // Regression: when a file is re-downloaded because its previously
     // trusted bytes were wrong, the Completed processing status computed from those bad
     // bytes must not survive — otherwise pending_files() skips the corrected file, the run
     // finalizes Completed, and the corrected data is never parsed or published.
@@ -635,7 +635,7 @@ fn test_legacy_marker_json_without_checksums_loads() {
     assert!(marker.processing_phase.progress_by_file["discogs_20260101_artists.xml.gz"].source_checksum.is_none());
 }
 
-// ── durable save (discogsography-mm27) ──────────────────────────────
+// ── durable save ──────────────────────────────
 
 /// tmp+rename gives readers atomicity but says nothing about durability: without an
 /// fsync of the temp file and of the parent directory, POSIX allows the rename's

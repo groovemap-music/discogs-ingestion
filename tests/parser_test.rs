@@ -557,7 +557,7 @@ async fn test_parse_large_batch_with_logging() {
 
 #[tokio::test]
 async fn test_parse_malformed_xml() {
-    // Malformed XML is fault-isolated per record (bead discogsography-7ykt): the bad
+    // Malformed XML is fault-isolated per record: the bad
     // record is dropped and parsing continues instead of aborting the whole dump file.
     let xml_content = r#"<?xml version="1.0" encoding="UTF-8"?>
 <artists>
@@ -666,7 +666,7 @@ fn gzip_to_temp_file(xml_content: &str) -> NamedTempFile {
 async fn test_parse_bare_ampersand_in_text() {
     // Discogs dumps historically ship unescaped `&` in text. quick-xml 0.39+ treats a
     // dangling `&` as IllFormed unless allow_dangling_amp is set; that must not abort
-    // the file (bead discogsography-7ykt).
+    // the file.
     let xml_content = r#"<?xml version="1.0" encoding="UTF-8"?>
 <artists>
     <artist id="1"><name>Artist One</name></artist>

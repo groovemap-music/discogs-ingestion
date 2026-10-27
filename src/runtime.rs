@@ -266,7 +266,7 @@ pub(crate) async fn wait_for_trigger(trigger: &Arc<tokio::sync::Mutex<Option<boo
 /// wedging the manual `/trigger` recovery (health.rs returns 409 `already_running` before enqueuing
 /// the trigger) and misreporting `/health`. `Failed` is a terminal, non-`Running` state that the
 /// periodic loop preserves (it only rewrites `Completed` -> `Waiting`) until the next successful
-/// run. (cu2.41)
+/// run.
 pub(crate) async fn reset_status_after_failed_check(state: &Arc<RwLock<ExtractorState>>) {
     let mut s = state.write().await;
     s.extraction_status = ExtractionStatus::Failed;
@@ -278,7 +278,7 @@ pub(crate) async fn reset_status_after_failed_check(state: &Arc<RwLock<Extractor
 /// processing code cannot await the `Notify` directly without stealing the signal from the loop's
 /// outer `select!`. The monitor parks on the `Notify` once (before any multi-hour work) and records
 /// the shutdown in a flag that processing code polls between files without side effects. Shared by
-/// both the Discogs and MusicBrainz loops. (cu2.44)
+/// both the Discogs and MusicBrainz loops.
 pub(crate) fn spawn_shutdown_flag_monitor(shutdown: Arc<tokio::sync::Notify>) -> Arc<AtomicBool> {
     let flag = Arc::new(AtomicBool::new(false));
     let flag_for_monitor = flag.clone();
@@ -299,7 +299,7 @@ pub(crate) fn spawn_shutdown_flag_monitor(shutdown: Arc<tokio::sync::Notify>) ->
 /// stop grace period, so the container is SIGKILLed instead of stopping cleanly, and orchestrators
 /// that key on exit code may restart the service being stopped. A shutdown must therefore
 /// short-circuit to `Ok(())` BEFORE the failure check. Shared by the Discogs and MusicBrainz initial
-/// runs. (cu2.45)
+/// runs.
 pub(crate) fn initial_run_outcome(success: bool, shutdown_requested: bool, source_label: &str) -> Result<()> {
     if shutdown_requested {
         info!("🛑 Shutdown requested during initial {source_label} processing — exiting cleanly");

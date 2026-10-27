@@ -58,13 +58,16 @@ and fails the moment the fixture and the mapper disagree.
 
 ## Vendored vocabularies
 
-`vocab/` holds the vocabularies this producer maps against. None of them is generated.
-Each is owned by the `design` repository and vendored here verbatim, byte for byte:
+`vocab/` holds the vocabularies this producer maps against, plus the identifier schemas
+vendored beside them. None of them is generated. Each is owned by the `design` repository
+and vendored here verbatim, byte for byte:
 
 | Vendored file | Design path | Record |
 | --- | --- | --- |
 | `vocab/media-taxonomy.json` | `taxonomy/media/v1/media-taxonomy.json` | ADR 0007 |
 | `vocab/identifier-types.json` | `taxonomy/identifiers/v1/identifier-types.json` | ADR 0011 |
+| `vocab/identifier-types.schema.json` | `taxonomy/identifiers/v1/identifier-types.schema.json` | ADR 0011 |
+| `vocab/identifier-block.schema.json` | `taxonomy/identifiers/v1/identifier-block.schema.json` | ADR 0011 |
 | `vocab/company-roles.json` | `taxonomy/company-roles/v1/company-roles.json` | ADR 0011 |
 
 `vocab/source.json` beside them records, for each copy, the design commit and the

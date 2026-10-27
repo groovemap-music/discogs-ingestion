@@ -18,12 +18,9 @@ must not duplicate these transforms.
 Pass a YAML path on the command line or in the environment:
 
 ```bash
-cargo run --locked -- \
-  --source discogs \
-  --data-quality-rules ./extraction-rules.yaml
+cargo run --locked -- --data-quality-rules ./extraction-rules.yaml
 
-DATA_QUALITY_RULES=/config/extraction-rules.yaml \
-  cargo run --locked -- --source discogs
+DATA_QUALITY_RULES=/config/extraction-rules.yaml cargo run --locked
 ```
 
 The repository provides [`extraction-rules.yaml`](../extraction-rules.yaml) as the

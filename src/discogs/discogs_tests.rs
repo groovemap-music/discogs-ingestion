@@ -241,7 +241,7 @@ rules:
     assert!(flagged_dir.join("violations.jsonl").exists(), "Violations JSONL should be written");
 
     // Check report file — now scoped to the data type's subdir so concurrent
-    // per-file validators no longer overwrite a shared report (discogsography-cu2.48).
+    // per-file validators no longer overwrite a shared report.
     let report_path = temp_dir.path().join("flagged").join("20260301").join("artists").join("report.txt");
     assert!(report_path.exists(), "Per-type report file should be written");
 }
@@ -321,9 +321,9 @@ rules:
     assert_eq!(report.total_records["artists"], 1);
 }
 
-// ── message_normalizer tests (cu2.43) ───────────────────────────────
+// ── message_normalizer tests ───────────────────────────────
 
-/// Regression for cu2.43: normalization + hashing must run unconditionally, not only inside
+/// Regression: normalization + hashing must run unconditionally, not only inside
 /// the optional validator stage. Feeds the normalizer the raw xmltodict shape the parser emits
 /// (container-wrapped `members`, `@`-prefixed keys, empty sha256) and asserts the output carries
 /// the flat consumer-ready shape and a populated content hash — the exact guarantees the no-rules

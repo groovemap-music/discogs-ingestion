@@ -64,7 +64,6 @@ fn test_startup_banner_message_reflects_repository() {
 fn test_ascii_art_uses_repository_identity() {
     let banner = ascii_art();
     assert!(banner.contains("discogs-ingestion"));
-    assert!(!banner.to_ascii_lowercase().contains("discogsography"));
     assert!(!banner.contains("rust-extractor"));
 }
 

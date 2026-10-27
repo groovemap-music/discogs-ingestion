@@ -806,7 +806,7 @@ fn test_flagged_writer_write_report() {
 
     writer.write_report(&report, "20260301");
 
-    // The report is scoped to its data type's subdir (discogsography-cu2.48).
+    // The report is scoped to its data type's subdir.
     let report_path = temp_dir.path().join("flagged").join("20260301").join("releases").join("report.txt");
     assert!(report_path.exists(), "Per-type report file should be created");
     let content = std::fs::read_to_string(report_path).unwrap();
@@ -816,7 +816,7 @@ fn test_flagged_writer_write_report() {
 
 #[test]
 fn test_flagged_writer_reports_do_not_overwrite_across_types() {
-    // Regression for discogsography-cu2.48: four concurrent per-file validators
+    // Regression: four concurrent per-file validators
     // each construct their own FlaggedRecordWriter with the same version-keyed
     // base_dir and call write_report with only their own type's data. When the
     // report was a single shared base_dir/report.txt, whichever validator
@@ -1536,8 +1536,8 @@ filters:
 "#,
     );
     // genre is a single string (one occurrence in the XML) that matches the
-    // filter — the key must be stripped, mirroring array-element removal
-    // (discogsography-cu2.47). Previously this scalar shape was silently skipped.
+    // filter — the key must be stripped, mirroring array-element removal.
+    // Previously this scalar shape was silently skipped.
     let mut record = json!({"genres": {"genre": "123"}});
     let actions = apply_filters(&config, "releases", &mut record);
     assert_eq!(actions.len(), 1);

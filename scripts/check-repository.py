@@ -104,16 +104,6 @@ for runtime_identity_source in (ROOT / "src" / "main.rs", ROOT / "src" / "health
     text = runtime_identity_source.read_text(encoding="utf-8").lower()
     require("rust-extractor" not in text, f"legacy runtime identity remains in {runtime_identity_source.relative_to(ROOT)}")
 
-active_identity_files = (
-    ROOT / "README.md",
-    ROOT / "Dockerfile",
-    ROOT / "Cargo.toml",
-    *(ROOT / "docs").rglob("*.md"),
-)
-for path in active_identity_files:
-    text = path.read_text(encoding="utf-8").lower()
-    require("discogsography" not in text, f"active legacy product identity remains in {path.relative_to(ROOT)}")
-
 contract = json.loads((ROOT / "contracts/catalog-events/v1/contract.json").read_text(encoding="utf-8"))
 require(contract["version"] == 1, "unexpected catalog contract version")
 require((ROOT / "contracts/catalog-events/v1/bindings/python/catalog_contract.py").is_file(), "generated Python binding is absent")

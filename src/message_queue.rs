@@ -25,8 +25,7 @@ const AMQP_EXCHANGE_TYPE: ExchangeKind = ExchangeKind::Fanout;
 /// never triggers. The publisher task then parks forever, the bounded
 /// batch channel fills, the batcher blocks on `send().await`, and the whole
 /// per-file pipeline wedges. The shutdown flag is only polled BETWEEN files, so
-/// SIGTERM cannot break it and the container is SIGKILLed
-/// (discogsography-rehd).
+/// SIGTERM cannot break it and the container is SIGKILLed.
 const PUBLISH_CONFIRM_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Decide whether a publisher confirm actually proves delivery.
@@ -186,8 +185,7 @@ impl MessageQueue {
     /// A stalled broker (resource alarm / flow control) keeps the connection up
     /// while withholding acks, so an unbounded await never resolves. Timing out
     /// turns the wedge into an error the caller can count and retry, and lets
-    /// the task fail cleanly instead of parking the whole pipeline
-    /// (discogsography-rehd).
+    /// the task fail cleanly instead of parking the whole pipeline.
     async fn await_confirm<F>(confirm_future: F) -> Result<Confirmation>
     where
         F: std::future::Future<Output = lapin::Result<Confirmation>>,

@@ -507,9 +507,9 @@ async fn test_parse_with_unknown_entity_reference() {
 
 #[tokio::test]
 async fn test_parse_attribute_entity_references() {
-    // Regression test for discogsography-cu2.16: attribute values must be
+    // Regression test: attribute values must be
     // entity-unescaped the same way element text is. Reproduces the exact
-    // failure scenario from the bead: a label name containing "&".
+    // failure scenario: a label name containing "&".
     let xml_content = r#"<?xml version="1.0" encoding="UTF-8"?>
 <releases>
     <release id="1">
