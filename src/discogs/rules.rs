@@ -453,7 +453,7 @@ pub fn apply_filters(config: &CompiledRulesConfig, data_type: &str, record: &mut
                     // matches, drop the key entirely — same net effect as filtering the
                     // only element out of an array. Without this, records with exactly
                     // one genre/style keep the bad value while multi-valued records get
-                    // filtered — inconsistent, incomplete cleaning (discogsography-cu2.47).
+                    // filtered — inconsistent, incomplete cleaning.
                     Some(Value::String(s)) => {
                         if remove_matching.is_match(s) {
                             let removed = s.clone();
@@ -814,7 +814,7 @@ impl FlaggedRecordWriter {
     /// types' summaries (a clean file could even overwrite a report full of
     /// errors with "No data quality violations found"). Scoping the report to a
     /// per-type subdir — alongside that type's existing `violations.jsonl` —
-    /// removes the collision entirely (discogsography-cu2.48).
+    /// removes the collision entirely.
     pub fn write_report(&self, report: &QualityReport, version: &str) {
         // A per-file validator's report carries exactly one data type, but be
         // robust to a merged multi-type report by writing one file per type.

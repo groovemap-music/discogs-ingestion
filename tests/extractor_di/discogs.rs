@@ -71,7 +71,7 @@ fn write_empty_artists_gz(path: &std::path::Path) {
 
 #[tokio::test]
 async fn test_process_single_file_amqp_failure_at_send_file_complete_leaves_marker_not_completed() {
-    // discogsography-cu2.107 regression: a send_file_complete failure must leave the
+    // Regression: a send_file_complete failure must leave the
     // state marker NOT Completed for this file, so pending_files() still includes it
     // on the next run and the signal is retried — instead of the marker already
     // claiming the file done (the old "marker first" ordering) and the signal being
@@ -109,7 +109,7 @@ async fn test_process_single_file_amqp_failure_at_send_file_complete_leaves_mark
 
 #[tokio::test]
 async fn test_process_single_file_close_failure_does_not_fail_the_run() {
-    // discogsography-cu2.108 regression: a cleanup (mq.close()) failure is purely
+    // Regression: a cleanup (mq.close()) failure is purely
     // cosmetic — the completion signal was already sent and the marker already
     // committed — so it must not flip an otherwise fully-successful file to Failed.
     let temp_dir = TempDir::new().unwrap();
@@ -140,7 +140,7 @@ async fn test_process_single_file_close_failure_does_not_fail_the_run() {
 
 #[tokio::test]
 async fn test_single_file_amqp_failure_clears_active_connection() {
-    // discogsography-b09b regression: every error exit of process_single_file must drop
+    // Regression: every error exit of process_single_file must drop
     // the active_connections entry and gracefully close the per-file AMQP connection.
     // Previously both sat on the success tail only, so a failed file left a phantom
     // connection in /metrics until the next run's state reset — periodic_check_days away.
@@ -513,7 +513,7 @@ async fn test_process_discogs_data_all_files_already_processed() {
 
     assert!(result.is_ok());
     assert!(result.unwrap());
-    // discogsography-d58d: the success side of the same branch — a landed broadcast still
+    // The success side of the same branch — a landed broadcast still
     // reports success, marks the extraction durably complete, and sets health Completed.
     assert_eq!(state.read().await.extraction_status, ExtractionStatus::Completed);
     let persisted = StateMarker::load(&marker_path).await.unwrap().unwrap();
@@ -577,7 +577,7 @@ async fn test_process_discogs_data_mq_factory_create_fails_on_all_processed() {
     )
     .await;
 
-    // discogsography-d58d: an unsent extraction_complete is a FAILURE, exactly as in the
+    // An unsent extraction_complete is a FAILURE, exactly as in the
     // normal completion path. Reporting Ok(true)/Completed here deferred the retry to the
     // next periodic sleep (15 days by default) while health, dashboard, and logs all
     // claimed the run had completed.
@@ -614,7 +614,7 @@ fn mock_dl_returning_marker(marker: StateMarker) -> MockDataSource {
     mock_dl
 }
 
-/// Regression for discogsography-cu2.42: on the resumed all-files-already-processed
+/// Regression: on the resumed all-files-already-processed
 /// completion path, a failed extraction_complete broadcast must NOT flip the state marker
 /// to fully Completed — otherwise should_process() returns Skip forever and the completion
 /// signal is permanently lost. The marker must stay retryable, and a later successful send
@@ -690,7 +690,7 @@ async fn test_process_discogs_data_resumed_completion_amqp_failure_stays_retryab
     assert_eq!(finalized.summary.overall_status, PhaseStatus::Completed, "a successful retry broadcast must finalize the marker as Completed");
 }
 
-/// Regression for discogsography-cu2.92: after a crash-and-resume, extraction_complete's
+/// Regression: after a crash-and-resume, extraction_complete's
 /// record_counts must carry the TRUE per-type totals for types completed in an earlier
 /// session — not 0. The per-run ExtractionProgress is reset each run, so counts must come
 /// from the persisted progress_by_file. This also verifies the /health rehydration: the
@@ -812,7 +812,7 @@ async fn test_process_discogs_data_all_processed_extraction_complete_send_fails(
 
     let result = process_discogs_data(config, state.clone(), shutdown, Arc::new(AtomicBool::new(false)), true, &mut mock_dl, factory, None).await;
 
-    // discogsography-d58d: the send failed, so the version still owes a broadcast. The
+    // The send failed, so the version still owes a broadcast. The
     // early path must report that out of band (Ok(false) + ExtractionStatus::Failed) so the
     // initial-run promotion to Err / cooldown-restart retries within minutes, instead of
     // claiming success and sleeping out a whole periodic cycle.
@@ -1094,7 +1094,7 @@ async fn test_process_discogs_data_end_to_end_success() {
     assert_eq!(s.extraction_progress.artists, 1);
 }
 
-/// Regression for cu2.44: a shutdown flag already set when process_discogs_data reaches the file
+/// Regression: a shutdown flag already set when process_discogs_data reaches the file
 /// loop must stop it from starting (and therefore finalizing) the run. The not-yet-started file is
 /// skipped so it stays pending in the state marker for a clean resume, the run is NOT marked
 /// Completed, and it returns Ok(false) — never Err (which would send main into the failure
@@ -1118,7 +1118,7 @@ async fn test_process_discogs_data_shutdown_before_files_does_not_finalize() {
     // Shutdown already requested when the run is entered.
     let shutdown_flag = Arc::new(AtomicBool::new(true));
 
-    // Since discogsography-l114 the run bails out before touching the downloader at all:
+    // The run bails out before touching the downloader at all:
     // starting a multi-GB download under shutdown guarantees a SIGKILL mid-transfer.
     let mut mock_dl = MockDataSource::new();
     mock_dl

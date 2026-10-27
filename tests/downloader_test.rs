@@ -301,7 +301,7 @@ async fn test_corrupted_metadata_handling() {
     let metadata_path = temp_dir.path().join(".discogs_metadata.json");
     fs::write(&metadata_path, "not valid json {{{").await.unwrap();
 
-    // A corrupt metadata cache must not wedge startup (bead discogsography-fsmp):
+    // A corrupt metadata cache must not wedge startup:
     // it is quarantined and startup continues with empty metadata.
     let downloader = Downloader::new(temp_dir.path().to_path_buf()).await.expect("corrupt metadata must not fail startup");
     assert!(downloader.metadata.is_empty());

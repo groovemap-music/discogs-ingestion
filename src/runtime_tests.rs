@@ -593,9 +593,9 @@ async fn test_message_batcher_empty_input() {
 
 // ── message_validator tests ─────────────────────────────────────────
 
-// ── failed-check status reset tests (cu2.41) ────────────────────────
+// ── failed-check status reset tests ────────────────────────
 
-/// Regression for cu2.41: after a periodic/triggered extraction returns `Err`, the loop must
+/// Regression: after a periodic/triggered extraction returns `Err`, the loop must
 /// reset a stuck `Running` status to `Failed`. Without this the status set up-front in
 /// `process_discogs_data` survives an early-`?` error for the whole multi-day periodic sleep,
 /// wedging `/trigger` recovery and causing `/health` to misreport the failed run as active.
@@ -625,7 +625,7 @@ async fn test_reset_status_after_failed_check_is_not_running() {
     }
 }
 
-/// discogsography-exnk: a triggered run whose downloader cannot be constructed is LOST —
+/// A triggered run whose downloader cannot be constructed is LOST —
 /// `wait_for_trigger` has already consumed the trigger flag — so the loop must record the
 /// failure rather than `continue` with the status untouched. Left at `Waiting`, the
 /// extractor is indistinguishable from "parked, finished, back on schedule", and the API's
@@ -644,9 +644,9 @@ async fn test_lost_trigger_leaves_a_terminal_failed_status_not_waiting() {
     assert_ne!(got, ExtractionStatus::Waiting, "a parked status is read as success by the API tracker");
 }
 
-// ── initial-run outcome tests (cu2.45) ──────────────────────────────
+// ── initial-run outcome tests ──────────────────────────────
 
-/// Regression for cu2.45: a between-files shutdown makes `process_musicbrainz_data` return
+/// Regression: a between-files shutdown makes `process_musicbrainz_data` return
 /// `Ok(false)`, indistinguishable from a real failure. The initial-run path used to promote that
 /// to `Err`, sending main into the 600s failure cooldown + `exit(1)` on a clean operator shutdown.
 /// `initial_run_outcome` must return `Ok(())` whenever a shutdown was requested, regardless of the
@@ -656,7 +656,7 @@ fn test_initial_run_outcome_shutdown_is_not_failure() {
     // Genuine failure, no shutdown → Err (main applies cooldown as intended).
     assert!(initial_run_outcome(false, false, "MusicBrainz").is_err());
 
-    // Shutdown with success == false (the exact cu2.45 scenario) → Ok, NOT a failure.
+    // Shutdown with success == false (the between-files shutdown case) → Ok, NOT a failure.
     assert!(initial_run_outcome(false, true, "MusicBrainz").is_ok());
 
     // Shutdown with success == true → Ok.
@@ -666,7 +666,7 @@ fn test_initial_run_outcome_shutdown_is_not_failure() {
     assert!(initial_run_outcome(true, false, "MusicBrainz").is_ok());
 }
 
-/// The same helper governs the Discogs initial run (fix-one-fix-all with cu2.44): a shutdown there
+/// The same helper governs the Discogs initial run: a shutdown there
 /// must likewise short-circuit to Ok so it never trips the failure cooldown.
 #[test]
 fn test_initial_run_outcome_discogs_shutdown_is_ok() {
@@ -674,9 +674,9 @@ fn test_initial_run_outcome_discogs_shutdown_is_ok() {
     assert!(initial_run_outcome(false, false, "Discogs").is_err());
 }
 
-// ── shutdown-flag monitor tests (cu2.44) ────────────────────────────
+// ── shutdown-flag monitor tests ────────────────────────────
 
-/// Regression for cu2.44: the Discogs path lost SIGTERM/SIGINT delivered mid-run because nothing
+/// Regression: the Discogs path lost SIGTERM/SIGINT delivered mid-run because nothing
 /// converted the one-shot `Notify` into a pollable flag. `spawn_shutdown_flag_monitor` must flip
 /// its `AtomicBool` when the `Notify` fires, so processing code can observe a shutdown between
 /// files without consuming the signal the outer `select!` needs.

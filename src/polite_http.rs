@@ -43,7 +43,7 @@ pub struct PoliteConfig {
     /// Idle/read timeout applied to each body read, resetting after a successful
     /// read. Bounds a mid-stream stall (a peer that stops sending bytes without
     /// closing the socket) so the download retry loop can recover, without
-    /// bounding a legitimately long multi-GB transfer (discogsography-cu2.66).
+    /// bounding a legitimately long multi-GB transfer.
     pub read_timeout: Duration,
 }
 
@@ -84,8 +84,7 @@ impl PoliteClient {
         //   * `read_timeout` bounds each body read and resets after a successful
         //     read — catching a silent mid-stream stall (half-open TCP, LB
         //     idle-drop with no RST) that would otherwise hang `stream.next()`
-        //     forever with neither an Ok nor an Err for the retry loop to act on
-        //     (discogsography-cu2.66),
+        //     forever with neither an Ok nor an Err for the retry loop to act on,
         //   * the polite-client retry loop handles transient errors,
         //   * the existing per-attempt MAX_DOWNLOAD_RETRIES bounds retries.
         let client = Client::builder()
@@ -329,7 +328,7 @@ mod tests {
 
     #[tokio::test]
     async fn read_timeout_fires_on_mid_stream_stall() {
-        // Regression for discogsography-cu2.66: a peer that sends response
+        // Regression: a peer that sends response
         // headers and a few body bytes and then goes silent — without closing
         // the socket (half-open TCP / LB idle-drop with no RST) — used to hang
         // the body read forever, since `stream.next().await` never resolved to

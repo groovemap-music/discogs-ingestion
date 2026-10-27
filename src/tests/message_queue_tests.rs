@@ -278,7 +278,7 @@ async fn test_get_channel_with_no_channel_triggers_reconnect() {
 
 #[tokio::test]
 async fn test_close_with_no_channel_or_connection_is_ok() {
-    // discogsography-cu2.108 regression: close() must be a best-effort no-op
+    // Regression: close() must be a best-effort no-op
     // (never early-return via `?`) when there's nothing to close — the
     // happy-path baseline for the "always attempt both closes" contract.
     let mq = MessageQueue {
@@ -308,7 +308,7 @@ async fn test_new_connection_failure_with_retries() {
     assert!(err_msg.contains("Failed to connect to AMQP broker after retries"), "Unexpected error: {}", err_msg);
 }
 
-// ── Publisher-confirm timeout (discogsography-rehd) ────────────────────────────
+// ── Publisher-confirm timeout ────────────────────────────
 
 #[tokio::test]
 async fn test_await_confirm_accepts_ack() {
@@ -318,7 +318,7 @@ async fn test_await_confirm_accepts_ack() {
 
 #[tokio::test]
 async fn test_await_confirm_passes_nack_through() {
-    // Nack rejection itself lives in check_confirmation (discogsography-i3h2);
+    // Nack rejection itself lives in check_confirmation;
     // await_confirm's contract is to surface the confirmation for that check.
     let confirm = MessageQueue::await_confirm(async { Ok(Confirmation::Nack(None)) }).await.expect("a resolved confirm must not error");
     assert!(!confirm.is_ack(), "a nack must surface to the caller for check_confirmation");
@@ -346,7 +346,7 @@ fn test_publish_confirm_timeout_is_bounded() {
     assert!(PUBLISH_CONFIRM_TIMEOUT <= Duration::from_secs(60));
 }
 
-/// Regression for discogsography-i3h2: publishes must be mandatory, otherwise the broker
+/// Regression: publishes must be mandatory, otherwise the broker
 /// acks and silently drops messages that route to zero queues.
 #[test]
 fn test_publish_options_are_mandatory() {

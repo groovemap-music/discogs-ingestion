@@ -113,7 +113,7 @@ impl Downloader {
 
         // Fetch the Discogs-published CHECKSUM file so each data file's SHA-256 can be
         // verified against an authoritative source rather than only the self-generated
-        // hash computed from whatever bytes happened to arrive (discogsography-cu2.106).
+        // hash computed from whatever bytes happened to arrive.
         // Best-effort: if the CHECKSUM file can't be fetched or parsed, log and proceed
         // without verification rather than blocking the whole dump on a transient
         // fetch failure — this is additive hardening, not a hard gate.
@@ -215,9 +215,9 @@ impl Downloader {
                         // checksum in the in-memory metadata map; without this incremental
                         // save the durable .discogs_metadata.json is written once, after
                         // the whole loop — so a failure on file N loses the checksums of
-                        // files 1..N-1, forcing full multi-GB re-downloads on restart
-                        // (discogsography-cu2.65). Best-effort: a save failure only costs a
-                        // re-download next run, so warn and continue rather than abort.
+                        // files 1..N-1, forcing full multi-GB re-downloads on restart.
+                        // Best-effort: a save failure only costs a re-download next run, so
+                        // warn and continue rather than abort.
                         if let Err(e) = self.save_metadata() {
                             warn!("⚠️ Failed to persist metadata after downloading {}: {}", filename, e);
                         }

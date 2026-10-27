@@ -68,7 +68,7 @@ async fn test_load_metadata_invalid_json() {
 
     std::fs::write(&metadata_path, "invalid json").unwrap();
 
-    // A corrupt metadata cache is recoverable (bead discogsography-fsmp): it is
+    // A corrupt metadata cache is recoverable: it is
     // quarantined and loading falls back to an empty map instead of wedging startup.
     let loaded = load_metadata(temp_dir.path()).expect("corrupt metadata must not be fatal");
     assert!(loaded.is_empty());
@@ -441,7 +441,7 @@ fn fake_data_checksums_txt() -> String {
 
 #[tokio::test]
 async fn test_download_discogs_data_verifies_against_published_checksum() {
-    // discogsography-cu2.106 regression: a genuine download whose bytes match the
+    // Published-CHECKSUM regression: a genuine download whose bytes match the
     // Discogs-published CHECKSUM must succeed as before.
     let temp_dir = TempDir::new().unwrap();
     let mut server = mockito::Server::new_async().await;
@@ -494,7 +494,7 @@ async fn test_download_discogs_data_verifies_against_published_checksum() {
 
 #[tokio::test]
 async fn test_download_discogs_data_checksum_mismatch_deletes_corrupt_file() {
-    // discogsography-cu2.106 regression: a 200-response whose body isn't the real dump
+    // Published-CHECKSUM regression: a 200-response whose body isn't the real dump
     // (a bad-but-complete download) must NOT be permanently trusted. On a
     // published-CHECKSUM mismatch, the corrupt local file and its metadata entry must be
     // removed and the run must fail loudly instead of silently succeeding.
@@ -546,7 +546,7 @@ async fn test_download_discogs_data_checksum_mismatch_deletes_corrupt_file() {
 
 #[tokio::test]
 async fn test_download_discogs_data_redownloads_when_locally_trusted_checksum_disagrees_with_published() {
-    // discogsography-cu2.106 regression: a file that was previously downloaded and
+    // Published-CHECKSUM regression: a file that was previously downloaded and
     // self-checksummed (should_download() would normally skip it as "up to date") must
     // be forced to re-download when the published CHECKSUM disagrees — closing the
     // "permanently trusted" hole for files that were already corrupted before this fix
@@ -1028,7 +1028,7 @@ async fn test_year_directory_non_success_skipped_other_years_succeed() {
 
 #[tokio::test]
 async fn test_download_metadata_persisted_incrementally_on_mid_batch_failure() {
-    // Regression for discogsography-cu2.65: metadata was persisted only after
+    // Regression: metadata was persisted only after
     // ALL files succeeded, so a failure on a later file discarded the checksums
     // of the files that already completed — forcing full multi-GB re-downloads
     // on restart. Each successful download must now persist metadata immediately.
@@ -1126,7 +1126,7 @@ impl<'a> tracing_subscriber::fmt::MakeWriter<'a> for LogCapture {
 
 #[tokio::test]
 async fn test_year_body_read_failure_is_logged() {
-    // discogsography-xgyb regression: the year-page body read was the one traceless failure
+    // Regression: the year-page body read was the one traceless failure
     // arm in scrape_file_list_from_discogs — `if let Ok(year_html)` with no else. A body that
     // fails post-headers (proxy reset / truncation) dropped the whole year's listing, so the
     // newest dump became invisible while the run still reported success with nothing logged.
@@ -1198,7 +1198,7 @@ async fn test_year_body_read_failure_is_logged() {
 
 #[tokio::test]
 async fn test_forced_redownload_requeues_processed_file() {
-    // discogsography-qhel regression: cu2.106 revokes trust in bad bytes on the download
+    // Regression: published-CHECKSUM verification revokes trust in bad bytes on the download
     // side, but the processing status computed from those bytes used to survive — so
     // pending_files() skipped the corrected file, the run finalized Completed, and the
     // corrected data was never parsed or published for the whole monthly version.
