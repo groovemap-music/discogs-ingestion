@@ -33,8 +33,17 @@ just setup
 just check
 ```
 
-To run the service locally you need a RabbitMQ broker. This example points at one on
-`localhost` and keeps downloaded dumps in `./data`:
+To run the service locally you need a RabbitMQ broker. By default the service logs in as
+user `groovemap` with password `groovemap`, so create a matching user (RabbitMQ's built-in
+`guest` user only works from loopback, so do not rely on it), or set `RABBITMQ_USERNAME` and
+`RABBITMQ_PASSWORD` to credentials that exist:
+
+```bash
+rabbitmqctl add_user groovemap groovemap
+rabbitmqctl set_permissions -p / groovemap ".*" ".*" ".*"
+```
+
+This example points at a broker on `localhost` and keeps downloaded dumps in `./data`:
 
 ```bash
 RABBITMQ_HOST=localhost DISCOGS_ROOT=./data cargo run --locked
@@ -58,10 +67,12 @@ curl http://localhost:8000/health
 ## Configuration
 
 The service reads environment variables. Values that do not parse fall back to the default.
+Numeric values for `PERIODIC_CHECK_DAYS`, `MAX_WORKERS`, `BATCH_SIZE`, `QUEUE_SIZE`,
+`PROGRESS_LOG_INTERVAL`, and `STATE_SAVE_INTERVAL` are raised to 1 if lower.
 
 | Variable | Default | Effect |
 | --- | --- | --- |
-| `RABBITMQ_HOST` | `rabbitmq` | Broker host. |
+| `RABBITMQ_HOST` | `rabbitmq` | Broker host. The default is a Compose service hostname; set it for any other setup. |
 | `RABBITMQ_PORT` | `5672` | Broker port. |
 | `RABBITMQ_USERNAME` / `RABBITMQ_PASSWORD` | `groovemap` | Broker credentials. Set `<NAME>_FILE` to read the value from a secret file instead. |
 | `DISCOGS_ROOT` | `/discogs-data` | Where dumps and [state markers](docs/state-marker-system.md) are stored. |
@@ -74,10 +85,10 @@ The service reads environment variables. Values that do not parse fall back to t
 | `PROGRESS_LOG_INTERVAL` | `1000` | Records between progress log lines. |
 | `STATE_SAVE_INTERVAL` | `5000` | Records between [state-marker checkpoints](docs/state-marker-periodic-updates.md). |
 | `DATA_QUALITY_RULES` | unset | Path to an [extraction rules](docs/extraction-rules-guide.md) YAML file (or `--data-quality-rules`). |
-| `FORCE_REPROCESS` | `false` | Reprocess every file on startup (or `--force-reprocess`). |
+| `FORCE_REPROCESS` | `false` | Reprocess every file on startup (or `-f` / `--force-reprocess`). |
 | `LOCAL_MANIFEST` | unset | Run a local smoke manifest once (or `--local-manifest`). See [extraction](docs/extraction.md). |
 | `FAILURE_COOLDOWN_SECS` | `600` | Seconds to sleep before exiting after a fatal failure, to avoid restart loops. `0` disables it. |
-| `LOG_LEVEL` | `INFO` | Log filter. The container image also sets `INFO`. |
+| `LOG_LEVEL` | `INFO` | Case-insensitive `DEBUG`, `INFO`, `WARNING` (or `WARN`), `ERROR`, or `CRITICAL` (same as `ERROR`). Other values fall back to `INFO`; there is no `TRACE`. Applies to this crate; the AMQP client (`lapin`) logs at `warn`, or `info` under `DEBUG`. The container image sets `INFO`. |
 | `ENVIRONMENT` | `development` | See [Structured logging](#structured-logging). |
 
 Telemetry variables are listed under [Telemetry](#telemetry).
