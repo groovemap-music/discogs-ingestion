@@ -43,7 +43,6 @@ fn test_data_type_as_str() {
     assert_eq!(DataType::Artists.as_str(), "artists");
     assert_eq!(DataType::Labels.as_str(), "labels");
     assert_eq!(DataType::Masters.as_str(), "masters");
-    assert_eq!(DataType::ReleaseGroups.as_str(), "release-groups");
     assert_eq!(DataType::Releases.as_str(), "releases");
 }
 
@@ -52,18 +51,16 @@ fn test_data_type_display() {
     assert_eq!(format!("{}", DataType::Artists), "artists");
     assert_eq!(format!("{}", DataType::Labels), "labels");
     assert_eq!(format!("{}", DataType::Masters), "masters");
-    assert_eq!(format!("{}", DataType::ReleaseGroups), "release-groups");
     assert_eq!(format!("{}", DataType::Releases), "releases");
 }
 
 #[test]
 fn test_data_type_all() {
     let all = DataType::all();
-    assert_eq!(all.len(), 5);
+    assert_eq!(all.len(), 4);
     assert!(all.contains(&DataType::Artists));
     assert!(all.contains(&DataType::Labels));
     assert!(all.contains(&DataType::Masters));
-    assert!(all.contains(&DataType::ReleaseGroups));
     assert!(all.contains(&DataType::Releases));
 }
 
@@ -85,15 +82,13 @@ fn test_extraction_progress_all_types() {
     progress.increment(DataType::Artists);
     progress.increment(DataType::Labels);
     progress.increment(DataType::Masters);
-    progress.increment(DataType::ReleaseGroups);
     progress.increment(DataType::Releases);
 
     assert_eq!(progress.get(DataType::Artists), 1);
     assert_eq!(progress.get(DataType::Labels), 1);
     assert_eq!(progress.get(DataType::Masters), 1);
-    assert_eq!(progress.get(DataType::ReleaseGroups), 1);
     assert_eq!(progress.get(DataType::Releases), 1);
-    assert_eq!(progress.total(), 5);
+    assert_eq!(progress.total(), 4);
 }
 
 #[test]
@@ -102,7 +97,6 @@ fn test_extraction_progress_default() {
     assert_eq!(progress.artists, 0);
     assert_eq!(progress.labels, 0);
     assert_eq!(progress.masters, 0);
-    assert_eq!(progress.release_groups, 0);
     assert_eq!(progress.releases, 0);
     assert_eq!(progress.total(), 0);
 }
@@ -192,20 +186,6 @@ fn test_discogs_types() {
     assert!(discogs.contains(&DataType::Labels));
     assert!(discogs.contains(&DataType::Masters));
     assert!(discogs.contains(&DataType::Releases));
-    // Discogs does not have ReleaseGroups
-    assert!(!discogs.contains(&DataType::ReleaseGroups));
-}
-
-#[test]
-fn test_musicbrainz_types() {
-    let mb_types = DataType::musicbrainz();
-    assert_eq!(mb_types.len(), 4);
-    assert!(mb_types.contains(&DataType::Artists));
-    assert!(mb_types.contains(&DataType::Labels));
-    assert!(mb_types.contains(&DataType::ReleaseGroups));
-    assert!(mb_types.contains(&DataType::Releases));
-    // MusicBrainz does not have Masters
-    assert!(!mb_types.contains(&DataType::Masters));
 }
 
 #[test]
