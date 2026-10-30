@@ -5,6 +5,11 @@ then publishes versioned catalog events to RabbitMQ. This repository owns the Di
 producer, its data-quality rules, event contract, generated bindings, fixtures, state
 markers, container image, tests, and release artifacts.
 
+It is for two groups of readers:
+
+- **Contributors** who change the producer, its rules, or the event contract.
+- **Operators** who run the container and watch its health and telemetry.
+
 ```mermaid
 flowchart LR
     D[Discogs XML dumps] --> V[Checksum verification]
@@ -18,13 +23,88 @@ flowchart LR
 The service publishes artists, labels, masters, and releases. It runs independently
 from MusicBrainz ingestion and neither coordinates nor shares a runtime lock with it.
 
-## Development
+## Quick start
+
+Install the pinned toolchain and run the full check:
 
 ```bash
 mise install
 just setup
 just check
 ```
+
+To run the service locally you need a RabbitMQ broker. By default the service logs in as
+user `groovemap` with password `groovemap`, so create a matching user (RabbitMQ's built-in
+`guest` user only works from loopback, so do not rely on it), or set `RABBITMQ_USERNAME` and
+`RABBITMQ_PASSWORD` to credentials that exist:
+
+```bash
+rabbitmqctl add_user groovemap groovemap
+rabbitmqctl set_permissions -p / groovemap ".*" ".*" ".*"
+```
+
+This example points at a broker on `localhost` and keeps downloaded dumps in `./data`:
+
+```bash
+RABBITMQ_HOST=localhost DISCOGS_ROOT=./data cargo run --locked
+```
+
+The service downloads the latest complete monthly Discogs dump set, publishes events, then
+checks again every `PERIODIC_CHECK_DAYS` days. To try the pipeline without downloading
+public dumps, process the synthetic smoke fixture once:
+
+```bash
+RABBITMQ_HOST=localhost DISCOGS_ROOT=./data cargo run --locked -- \
+  --local-manifest contracts/extractor-smoke/v1/manifest.json
+```
+
+Check that it is up:
+
+```bash
+curl http://localhost:8000/health
+```
+
+## Configuration
+
+The service reads environment variables. Values that do not parse fall back to the default.
+Numeric values for `PERIODIC_CHECK_DAYS`, `MAX_WORKERS`, `BATCH_SIZE`, `QUEUE_SIZE`,
+`PROGRESS_LOG_INTERVAL`, and `STATE_SAVE_INTERVAL` are raised to 1 if lower.
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `RABBITMQ_HOST` | `rabbitmq` | Broker host. The default is a Compose service hostname; set it for any other setup. |
+| `RABBITMQ_PORT` | `5672` | Broker port. |
+| `RABBITMQ_USERNAME` / `RABBITMQ_PASSWORD` | `groovemap` | Broker credentials. Set `<NAME>_FILE` to read the value from a secret file instead. |
+| `DISCOGS_ROOT` | `/discogs-data` | Where dumps and [state markers](docs/state-marker-system.md) are stored. |
+| `DISCOGS_EXCHANGE_PREFIX` | `groovemap-discogs` | Prefix of the RabbitMQ exchanges. |
+| `PERIODIC_CHECK_DAYS` | `15` | Days between checks for a new dump. |
+| `HEALTH_PORT` | `8000` | Port of the HTTP endpoints below. |
+| `MAX_WORKERS` | CPU count | Worker count. |
+| `BATCH_SIZE` | `100` | Records per published batch. |
+| `QUEUE_SIZE` | `5000` | Internal queue size. |
+| `PROGRESS_LOG_INTERVAL` | `1000` | Records between progress log lines. |
+| `STATE_SAVE_INTERVAL` | `5000` | Records between [state-marker checkpoints](docs/state-marker-periodic-updates.md). |
+| `DATA_QUALITY_RULES` | unset | Path to an [extraction rules](docs/extraction-rules-guide.md) YAML file (or `--data-quality-rules`). |
+| `FORCE_REPROCESS` | `false` | Reprocess every file on startup (or `-f` / `--force-reprocess`). |
+| `LOCAL_MANIFEST` | unset | Run a local smoke manifest once (or `--local-manifest`). See [extraction](docs/extraction.md). |
+| `FAILURE_COOLDOWN_SECS` | `600` | Seconds to sleep before exiting after a fatal failure, to avoid restart loops. `0` disables it. |
+| `LOG_LEVEL` | `INFO` | Case-insensitive `DEBUG`, `INFO`, `WARNING` (or `WARN`), `ERROR`, or `CRITICAL` (same as `ERROR`). Other values fall back to `INFO`; there is no `TRACE`. Applies to this crate; the AMQP client (`lapin`) logs at `warn`, or `info` under `DEBUG`. The container image sets `INFO`. |
+| `ENVIRONMENT` | `development` | See [Structured logging](#structured-logging). |
+
+Telemetry variables are listed under [Telemetry](#telemetry).
+
+## HTTP endpoints
+
+The service listens on `HEALTH_PORT` (the image exposes `8000` and runs a `/health` check).
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /health` | Service name, extraction status, per-entity progress, and time since each entity last finished. |
+| `GET /metrics` | JSON progress counters and error count. |
+| `GET /ready` | `200` once a run has started or finished, otherwise `503`. |
+| `POST /trigger` | Start a run now. Optional JSON body `{"force_reprocess": true}`. Returns `202`, or `409` if a run is active. |
+
+## Development
 
 Use `just contract` after changing `contracts/catalog-events/definitions/discogs.json`.
 `just image` builds `discogs-ingestion:local`; `just release-dry-run` prepares local
