@@ -69,7 +69,6 @@ async fn health_handler(State((state, _)): State<AppState>) -> (StatusCode, Json
             "artists": state.extraction_progress.artists,
             "labels": state.extraction_progress.labels,
             "masters": state.extraction_progress.masters,
-            "release_groups": state.extraction_progress.release_groups,
             "releases": state.extraction_progress.releases,
             "total": state.extraction_progress.total(),
         },
@@ -77,7 +76,6 @@ async fn health_handler(State((state, _)): State<AppState>) -> (StatusCode, Json
             "artists": state.last_extraction_time.get(&crate::types::DataType::Artists).map(|t| t.elapsed().as_secs_f64()),
             "labels": state.last_extraction_time.get(&crate::types::DataType::Labels).map(|t| t.elapsed().as_secs_f64()),
             "masters": state.last_extraction_time.get(&crate::types::DataType::Masters).map(|t| t.elapsed().as_secs_f64()),
-            "release_groups": state.last_extraction_time.get(&crate::types::DataType::ReleaseGroups).map(|t| t.elapsed().as_secs_f64()),
             "releases": state.last_extraction_time.get(&crate::types::DataType::Releases).map(|t| t.elapsed().as_secs_f64()),
         },
         "timestamp": Utc::now().to_rfc3339(),
@@ -93,9 +91,6 @@ async fn metrics_handler(State((state, _)): State<AppState>) -> (StatusCode, Jso
         "extraction_progress_artists": state.extraction_progress.artists,
         "extraction_progress_labels": state.extraction_progress.labels,
         "extraction_progress_masters": state.extraction_progress.masters,
-        // MusicBrainz-only type — omitting it made the per-type counters sum to less
-        // than extraction_progress_total on the extractor-musicbrainz instance.
-        "extraction_progress_release_groups": state.extraction_progress.release_groups,
         "extraction_progress_releases": state.extraction_progress.releases,
         "extraction_progress_total": state.extraction_progress.total(),
         "completed_files": state.completed_files.len(),
