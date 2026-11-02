@@ -1,5 +1,5 @@
 # Build stage
-FROM rust:1.98-slim@sha256:4cd829461bd5c4d511c32e269da9cb8929223b666519d8004e35fc8d1d771ab7 AS builder
+FROM rust:1.99-slim@sha256:b8e062b1c3a80183df83d9ba187cadd2b5ab84bc78d453dbfeb2fccd5f982247 AS builder
 
 # Install build dependencies
 # hadolint ignore=DL3008
@@ -70,7 +70,7 @@ RUN --mount=type=cache,id=sccache-discogs-ingestion,target=/root/.cache/sccache 
     sccache --show-stats
 
 # Runtime stage
-FROM debian:13-slim@sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad
+FROM debian:13-slim@sha256:f6b08b09a05725f9431502d3b5714f5c4576e82c1a84fa1debe0c24a7e0c3ec4
 
 # Build arguments for configurable UID/GID (must match the compose `user:` override)
 ARG BUILD_DATE
