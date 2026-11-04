@@ -144,13 +144,18 @@ application build finishes. That cache is separate from the local one above.
 
 ## Structured logging
 
-Every JSON log event includes a root `environment` string, read once from `ENVIRONMENT`
-at startup. Unset or non-Unicode values default to `development`; explicit values,
-including an empty string, are preserved. Production Compose must set
-`ENVIRONMENT=production`. This log context is independent of
-`OTEL_RESOURCE_ATTRIBUTES` and cannot be replaced by an event field named `environment`,
-which remains inside `fields`. `LOG_LEVEL` filtering and the existing JSON event/span
-fields remain unchanged.
+Every log line is one JSON object in the shared GrooveMap schema the Python services emit
+(`python-libraries` `common.config.setup_logging`): root `timestamp` (RFC 3339 UTC, `Z`),
+`level` (lowercase; `warn` is `warning`, `trace` is `debug`), `logger` (the tracing target),
+`lineno`, `event` (the message), `service` (`discogs-ingestion`) and `environment`, with the
+event's own fields at the root. `environment` is read once from `ENVIRONMENT` at startup;
+unset or non-Unicode values default to `development`, explicit values, including an empty
+string, are preserved. Production Compose must set `ENVIRONMENT=production`. This context is
+independent of `OTEL_RESOURCE_ATTRIBUTES`.
+
+The schema keys, plus `span`, `spans` and `fields`, always win at the root: an event field
+with one of those names is kept under `fields.<name>`. Span context stays nested under
+`span` (innermost) and `spans` (root first). `LOG_LEVEL` filtering is unchanged.
 
 ## Telemetry
 
