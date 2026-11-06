@@ -144,6 +144,18 @@ At least one bound is required. Missing, null, and nonnumeric values are unchang
 date strings, the engine evaluates the leading numeric year, so a `released` value such
 as `0400-01-01` can be nullified by the same range policy.
 
+### Rules a filter shadows
+
+Because filters run first, a rule that watches a value a filter already repairs cannot
+fire in the pipeline, and the repair does not appear in the quality report. With the
+shipped file, `genre-is-numeric` (numeric genres are removed first) and the masters
+`year-out-of-range` (implausible years are nullified first) are backstops only. The
+releases `year-out-of-range` reads `year`, which a Discogs release does not carry (its
+date is `released`), so it has nothing to read. An all-clear report therefore means the
+other seven rules found nothing, and says nothing about values the filters repaired.
+`tests/shipped_rules_test.rs` runs the shipped file through the real parser and validator
+on real-shaped XML, one record per rule, and pins this behaviour.
+
 ## Observation rules
 
 Observation rules never drop a record. Every violation is logged and the record
