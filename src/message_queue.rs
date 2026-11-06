@@ -210,14 +210,22 @@ impl MessageQueue {
         BasicPublishOptions { mandatory: true, ..Default::default() }
     }
 
-    /// Publish one already-serialized payload and require both a broker ack and proof
-    /// that the message was routable.
-    async fn publish_payload(&self, channel: &Channel, exchange_name: &str, payload: &[u8]) -> Result<()> {
-        let publish = channel
+    /// Send one already-serialized payload and return its pending confirm without waiting.
+    ///
+    /// `basic_publish` only writes the frame; the broker's ack arrives later on the
+    /// returned `PublisherConfirm`. Splitting the two lets a batch keep many publishes in
+    /// flight at once instead of paying one broker round trip (a quorum-queue fsync on every
+    /// bound queue) per message.
+    async fn send_payload(&self, channel: &Channel, exchange_name: &str, payload: &[u8]) -> Result<lapin::PublisherConfirm> {
+        channel
             .basic_publish(exchange_name.into(), "".into(), Self::publish_options(), payload, Self::message_properties())
             .await
-            .context("Failed to publish message")?;
+            .context("Failed to publish message")
+    }
 
+    /// Wait for one pending confirm and require both a broker ack and proof that the
+    /// message was routable.
+    async fn settle_confirm(exchange_name: &str, publish: lapin::PublisherConfirm) -> Result<()> {
         // Time only the confirm wait, not serialization or the basic_publish write — this is
         // the broker-side latency the `groovemap.extraction.publish.confirm.duration`
         // histogram is meant to show, and the signal that goes flat when RabbitMQ trips a
@@ -236,6 +244,13 @@ impl MessageQueue {
             telemetry::record_messages_sent(exchange_name, 1);
         }
         result
+    }
+
+    /// Publish one already-serialized payload and require both a broker ack and proof
+    /// that the message was routable.
+    async fn publish_payload(&self, channel: &Channel, exchange_name: &str, payload: &[u8]) -> Result<()> {
+        let publish = self.send_payload(channel, exchange_name, payload).await?;
+        Self::settle_confirm(exchange_name, publish).await
     }
 
     async fn get_channel(&self) -> Result<Channel> {
@@ -315,10 +330,20 @@ impl MessagePublisher for MessageQueue {
         let span = telemetry::publish_span(&exchange_name);
 
         async move {
+            // Pipeline the batch: put every message on the wire first, then settle the
+            // confirms in publish order. The guarantee is unchanged — `publish_batch`
+            // returns Ok only when every message was acked AND routed, and any nack, return
+            // or timeout fails the batch so the file stays pending. Confirm waiting is
+            // bounded by the batch size, so memory and in-flight work stay bounded.
+            let mut pending = Vec::with_capacity(messages.len());
             for message in messages {
                 let payload = serde_json::to_vec(&Message::Data(message)).context("Failed to serialize message")?;
 
-                self.publish_payload(&channel, &exchange_name, &payload).await?;
+                pending.push(self.send_payload(&channel, &exchange_name, &payload).await?);
+            }
+
+            for publish in pending {
+                Self::settle_confirm(&exchange_name, publish).await?;
             }
 
             Ok(())
