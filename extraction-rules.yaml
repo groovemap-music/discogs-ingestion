@@ -59,15 +59,6 @@ filters:
 
 rules:
   releases:
-    - name: year-out-of-range
-      description: "Release year is before 1860 or after current year + 1"
-      field: year
-      condition:
-        type: range
-        min: 1860
-        max: 2027
-      severity: warning
-
     - name: missing-title
       description: "Release has no title"
       field: title
@@ -97,14 +88,6 @@ rules:
           - Rock
           - Stage & Screen
       severity: warning
-
-    - name: genre-is-numeric
-      description: "Genre value is purely numeric — likely a parsing error"
-      field: genres.genre
-      condition:
-        type: regex
-        pattern: "^\\d+$"
-      severity: error
 
     - name: format-not-recognized
       description: "Format value is not in the vendored Discogs media taxonomy (contracts/catalog-events/vocab/media-taxonomy.json). Refresh this enum by re-running the list of discogs.formats keys after re-vendoring the taxonomy; see docs/extraction-rules-guide.md."
@@ -222,7 +205,9 @@ rules:
           - "Recorded By"
       severity: warning
 
-    # Note: years like 197 and 338 are already caught by year-out-of-range (< min 1860).
+    # No numeric-genre or year-range rules: the `filters` above run first and repair those
+    # values (numeric genres removed, implausible years and dates nullified), so a rule on
+    # them could never fire. The repairs are counted in the quality report instead.
 
   artists:
     - name: empty-artist-name
@@ -239,13 +224,3 @@ rules:
       condition:
         type: required
       severity: error
-
-  masters:
-    - name: year-out-of-range
-      description: "Master year is before 1860 or after current year + 1"
-      field: year
-      condition:
-        type: range
-        min: 1860
-        max: 2027
-      severity: warning

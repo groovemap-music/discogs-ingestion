@@ -144,6 +144,21 @@ At least one bound is required. Missing, null, and nonnumeric values are unchang
 date strings, the engine evaluates the leading numeric year, so a `released` value such
 as `0400-01-01` can be nullified by the same range policy.
 
+### Filters and the quality report
+
+Filters run before rules, so a rule on a field a filter repairs could never fire. The
+shipped file therefore has no such rules: seven rules, each proven to fire on a real-shaped
+record in `tests/shipped_rules_test.rs`, which also fails if a rule is ever shadowed by a
+filter on the same field.
+
+Each repair is counted in the quality report (`report.txt`) per data type, field and
+reason, so a run that cleaned values does not read as all clear:
+
+```text
+  🔧 Filtered values (repaired before validation):
+    releases: genres.genre: 1204 values in 1180 records (Strip legacy numeric genre IDs ...)
+```
+
 ## Observation rules
 
 Observation rules never drop a record. Every violation is logged and the record

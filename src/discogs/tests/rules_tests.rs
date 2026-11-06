@@ -1041,7 +1041,9 @@ fn test_default_rules_file() {
         assert!(!compiled.rules_for("releases").is_empty());
         assert!(!compiled.rules_for("artists").is_empty());
         assert!(!compiled.rules_for("labels").is_empty());
-        assert!(!compiled.rules_for("masters").is_empty());
+        // Masters carry filters only: every rule they had watched a value a filter repairs first.
+        assert!(compiled.rules_for("masters").is_empty());
+        assert!(!compiled.filters_for("masters").is_empty());
     }
 }
 

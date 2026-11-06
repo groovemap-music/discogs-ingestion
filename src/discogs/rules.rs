@@ -518,6 +518,13 @@ pub struct SkippedRecord {
     pub reason: String,
 }
 
+/// What one filter repaired, per data type: records touched and values removed or nullified.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct FilterCounts {
+    pub records: u64,
+    pub values: u64,
+}
+
 #[derive(Debug, Default)]
 pub struct QualityReport {
     /// data_type -> rule_name -> counts (BTreeMap for deterministic output ordering)
@@ -526,6 +533,8 @@ pub struct QualityReport {
     pub total_records: HashMap<String, u64>,
     /// data_type -> list of skipped records
     pub skipped: HashMap<String, Vec<SkippedRecord>>,
+    /// data_type -> (field, reason) -> what the filter repaired before validation
+    pub filtered: HashMap<String, BTreeMap<(String, String), FilterCounts>>,
 }
 
 impl QualityReport {
@@ -553,6 +562,24 @@ impl QualityReport {
             .push(SkippedRecord { record_id: record_id.to_string(), reason: reason.to_string() });
     }
 
+    /// Count what the filters repaired in one record, so a run that cleaned values does not read as all clear.
+    pub fn record_filter_actions(&mut self, data_type: &str, actions: &[FilterAction]) {
+        for action in actions {
+            let counts = self
+                .filtered
+                .entry(data_type.to_string())
+                .or_default()
+                .entry((action.field.clone(), action.reason.clone()))
+                .or_default();
+            counts.records += 1;
+            counts.values += action.removed_count as u64;
+        }
+    }
+
+    pub fn has_filtered_values(&self) -> bool {
+        self.filtered.values().any(|f| f.values().any(|c| c.values > 0))
+    }
+
     pub fn skipped_records(&self) -> &HashMap<String, Vec<SkippedRecord>> {
         &self.skipped
     }
@@ -577,6 +604,14 @@ impl QualityReport {
         for (dt, records) in other.skipped {
             self.skipped.entry(dt).or_default().extend(records);
         }
+        for (dt, filters) in other.filtered {
+            let entry = self.filtered.entry(dt).or_default();
+            for (key, counts) in filters {
+                let fc = entry.entry(key).or_default();
+                fc.records += counts.records;
+                fc.values += counts.values;
+            }
+        }
     }
 
     pub fn has_violations(&self) -> bool {
@@ -584,7 +619,7 @@ impl QualityReport {
     }
 
     pub fn format_summary(&self, version: &str) -> String {
-        if !self.has_violations() && !self.has_skipped_records() {
+        if !self.has_violations() && !self.has_skipped_records() && !self.has_filtered_values() {
             return format!("📊 Data Quality Report for discogs_{}: No data quality violations found.\n", version);
         }
         let mut output = format!("📊 Data Quality Report for discogs_{}:\n", version);
@@ -604,6 +639,18 @@ impl QualityReport {
                     let total_count: usize = records.len();
                     let details: Vec<String> = by_reason.iter().map(|(reason, ids)| format!("{}: {}", reason, ids.join(", "))).collect();
                     output.push_str(&format!("    {}: {} ({})\n", dt, total_count, details.join("; ")));
+                }
+            }
+        }
+
+        // Filters repair values before validation, so a clean rules count can hide cleaned data.
+        if self.has_filtered_values() {
+            output.push_str("  \u{1f527} Filtered values (repaired before validation):\n");
+            for dt in &["releases", "artists", "labels", "masters"] {
+                if let Some(filters) = self.filtered.get(*dt) {
+                    for ((field, reason), counts) in filters {
+                        output.push_str(&format!("    {}: {}: {} values in {} records ({})\n", dt, field, counts.values, counts.records, reason));
+                    }
                 }
             }
         }
@@ -822,6 +869,7 @@ impl FlaggedRecordWriter {
         data_types.extend(report.counts.keys().map(String::as_str));
         data_types.extend(report.total_records.keys().map(String::as_str));
         data_types.extend(report.skipped.keys().map(String::as_str));
+        data_types.extend(report.filtered.keys().map(String::as_str));
 
         if data_types.is_empty() {
             return;

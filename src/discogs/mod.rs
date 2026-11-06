@@ -665,6 +665,7 @@ pub async fn message_validator(
 
         // Apply filters — mutate message data in-place before validation
         let filter_actions = apply_filters(&rules, data_type, &mut message.data);
+        report.record_filter_actions(data_type, &filter_actions);
         for action in &filter_actions {
             info!(
                 "🔧 Filtered {} value(s) from {} in {} {}: removed {:?}, reason: {}",
