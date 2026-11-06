@@ -1,23 +1,21 @@
 //! The shipped `extraction-rules.yaml`, run through the real parser and the real validator stage
 //! on real-shaped Discogs XML, one record per rule that should trip it.
 //!
-//! Finding recorded here (discogs-ingestion-y5g): the 20261101 reports said "No data quality
-//! violations found" for every type. The rules load, compile and match the parsed record shape,
-//! so zero is not a shape bug. But the extractor applies `filters` before `rules`, and three
-//! rules watch values a filter has already removed, so they cannot fire in the pipeline:
-//! `genre-is-numeric`, the masters `year-out-of-range`, and the releases `year-out-of-range`
-//! (a release carries `released`, not `year`, so that rule has nothing to read at all). The
-//! filters clean those values silently, so a real fix to the data is invisible in the report.
-//! Zero violations for the other seven rules is genuine only when the dump is clean for them;
-//! each one is proven below to fire on a record that breaks it.
+//! Finding (discogs-ingestion-y5g): the 20261101 reports said "No data quality violations found"
+//! for every type. The rules load, compile and match the parsed record shape, so zero was not a
+//! shape bug. But the extractor applies `filters` before `rules`, and three shipped rules watched
+//! values a filter had already repaired (numeric genres, implausible years), so they could never
+//! fire, and the repairs appeared nowhere in the report. Now: filters stay first, the shadowed
+//! rules are retired, every remaining rule is proven below to fire, and each filter's repairs are
+//! counted in the quality report.
 
 use extractor::extractor::message_validator;
 use extractor::parser::XmlParser;
-use extractor::rules::{CompiledRulesConfig, QualityReport, RulesConfig, Severity, evaluate_rules};
+use extractor::rules::{CompiledRulesConfig, FilterCondition, QualityReport, RuleCondition, RulesConfig};
 use extractor::types::{DataMessage, DataType};
 use flate2::Compression;
 use flate2::write::GzEncoder;
-use serde_json::{Value, json};
+use serde_json::json;
 use std::io::Write;
 use std::sync::Arc;
 use tempfile::{NamedTempFile, TempDir};
@@ -134,36 +132,112 @@ async fn records_marked_do_not_use_are_skipped_not_validated() {
     assert_eq!(report.skipped["artists"].len(), 1);
 }
 
-// ── Rules a filter shadows ─────────────────────────────────────────
+// ── Filters: repairs are counted, and no rule is shadowed by one ────
 
 #[tokio::test]
-async fn a_numeric_genre_is_stripped_by_the_filter_before_genre_is_numeric_can_see_it() {
+async fn a_numeric_genre_is_stripped_and_the_repair_is_reported() {
     let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
 <releases><release id="103"><title>T</title><genres><genre>1</genre><genre>Rock</genre></genres></release></releases>"#;
     let (forwarded, report) = run_pipeline(DataType::Releases, xml).await;
     assert!(fired(&report, "releases").is_empty(), "the filter removed the numeric genre before validation");
     assert_eq!(forwarded[0].data["genres"]["genre"], json!(["Rock"]));
+    let counts = &report.filtered["releases"][&("genres.genre".to_string(), "Strip legacy numeric genre IDs from upstream data".to_string())];
+    assert_eq!((counts.records, counts.values), (1, 1));
+    let summary = report.format_summary("20261101");
+    assert!(!summary.contains("No data quality violations found"), "a run that repaired values is not all clear:\n{summary}");
+    assert!(summary.contains("releases: genres.genre: 1 values in 1 records"), "{summary}");
 }
 
 #[tokio::test]
-async fn an_implausible_master_year_is_nullified_by_the_filter_before_year_out_of_range_can_see_it() {
+async fn an_implausible_master_year_is_nullified_and_the_repair_is_reported() {
     let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
-<masters><master id="5"><title>T</title><year>197</year></master></masters>"#;
+<masters><master id="5"><title>T</title><year>197</year></master><master id="6"><title>U</title><year>1999</year></master></masters>"#;
     let (forwarded, report) = run_pipeline(DataType::Masters, xml).await;
-    assert!(fired(&report, "masters").is_empty(), "the filter nullified the year before validation");
     assert!(forwarded[0].data["year"].is_null());
+    assert_eq!(forwarded[1].data["year"], json!("1999"));
+    let counts = &report.filtered["masters"][&("year".to_string(), "Treat sentinel and implausible years as unknown".to_string())];
+    assert_eq!((counts.records, counts.values), (1, 1));
+    assert!(report.format_summary("20261101").contains("masters: year: 1 values in 1 records"));
+}
+
+#[tokio::test]
+async fn an_implausible_release_date_is_nullified_and_the_repair_is_reported() {
+    let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<releases><release id="104"><title>T</title><released>0400-01-01</released></release></releases>"#;
+    let (forwarded, report) = run_pipeline(DataType::Releases, xml).await;
+    assert!(forwarded[0].data["released"].is_null());
+    let counts = &report.filtered["releases"][&("released".to_string(), "Treat sentinel and implausible release dates as unknown".to_string())];
+    assert_eq!((counts.records, counts.values), (1, 1));
+}
+
+#[tokio::test]
+async fn a_run_with_nothing_to_repair_still_reads_all_clear() {
+    let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<masters><master id="6"><title>U</title><year>1999</year></master></masters>"#;
+    let (_, report) = run_pipeline(DataType::Masters, xml).await;
+    assert!(!report.has_filtered_values());
 }
 
 #[test]
-fn the_shadowed_rules_themselves_do_fire_on_an_unfiltered_record() {
-    let rules = shipped_rules();
-    let genre = evaluate_rules(&rules, "releases", &json!({"@id": "1", "title": "T", "genres": {"genre": "1"}}));
-    assert!(genre.iter().any(|v| v.rule_name == "genre-is-numeric" && matches!(v.severity, Severity::Error)));
-    let master = evaluate_rules(&rules, "masters", &json!({"@id": "5", "year": "197"}));
-    assert!(master.iter().any(|v| v.rule_name == "year-out-of-range"));
-    // The releases rule reads `year`, a field a Discogs release does not carry.
-    let release = evaluate_rules(&rules, "releases", &json!({"@id": "1", "title": "T", "year": "197"}));
-    assert!(release.iter().any(|v| v.rule_name == "year-out-of-range"));
-    let real_release: Value = json!({"@id": "1", "title": "T", "released": "0400-01-01"});
-    assert!(evaluate_rules(&rules, "releases", &real_release).is_empty(), "no `year` on a real release, so nothing to range-check");
+fn filtered_counts_merge_across_reports() {
+    let mut a = QualityReport::new();
+    let mut b = QualityReport::new();
+    let action = extractor::rules::FilterAction { field: "year".into(), removed_count: 2, removed_values: vec![], reason: "r".into() };
+    a.record_filter_actions("masters", std::slice::from_ref(&action));
+    b.record_filter_actions("masters", std::slice::from_ref(&action));
+    a.merge(b);
+    let counts = &a.filtered["masters"][&("year".to_string(), "r".to_string())];
+    assert_eq!((counts.records, counts.values), (2, 4));
+}
+
+/// A rule whose violations a filter has already repaired away can never fire: a regex rule
+/// with the pattern a `remove_matching` filter strips, or a range rule inside the bounds a
+/// `nullify_when` filter nullifies outside of, on the same field. (A rule on the same field
+/// that catches more than the filter repairs, like `genre-not-recognized`, is not shadowed.)
+/// Fails if the shipped file ever ships such a rule again.
+#[test]
+fn no_shipped_rule_is_shadowed_by_a_filter_on_the_same_field() {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("extraction-rules.yaml");
+    let config = RulesConfig::load(&path).unwrap();
+    for (data_type, rules) in &config.rules {
+        let filters = config.filters.get(data_type).map(Vec::as_slice).unwrap_or_default();
+        for rule in rules {
+            for filter in filters {
+                let shadowed = match (filter, &rule.condition) {
+                    (FilterCondition::RemoveMatching { field, remove_matching, .. }, RuleCondition::Regex { pattern }) => {
+                        *field == rule.field && remove_matching == pattern
+                    }
+                    (FilterCondition::NullifyWhen { field, nullify_when, .. }, RuleCondition::Range { min, max }) => {
+                        *field == rule.field
+                            && min.is_none_or(|m| nullify_when.below.is_some_and(|b| m >= b))
+                            && max.is_none_or(|m| nullify_when.above.is_some_and(|a| m <= a))
+                            && (min.is_some() || max.is_some())
+                    }
+                    _ => false,
+                };
+                assert!(!shadowed, "rule {} on {data_type}.{} is shadowed by a filter that repairs the same values first", rule.name, rule.field);
+            }
+        }
+    }
+}
+
+#[test]
+fn the_shipped_file_has_seven_rules_and_each_is_covered_here() {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("extraction-rules.yaml");
+    let config = RulesConfig::load(&path).unwrap();
+    let mut names: Vec<String> = config.rules.values().flatten().map(|r| r.name.clone()).collect();
+    names.sort();
+    assert_eq!(
+        names,
+        [
+            "company-role-not-recognized",
+            "empty-artist-name",
+            "empty-label-name",
+            "format-not-recognized",
+            "genre-not-recognized",
+            "identifier-type-not-recognized",
+            "missing-title",
+        ],
+        "a rule added or removed needs a record here that trips it"
+    );
 }
