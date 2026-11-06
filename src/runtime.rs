@@ -15,7 +15,7 @@ use tokio::sync::{RwLock, mpsc};
 use tokio::time::{Duration, sleep};
 use tracing::{debug, error, info, warn};
 
-use crate::message_queue::{MessagePublisher, MessageQueue};
+use crate::message_queue::{MessagePublisher, MessageQueue, SharedPacer, pacer_from_env};
 use crate::state_marker::StateMarker;
 use crate::telemetry;
 use crate::types::{DataMessage, DataType, ExtractionProgress};
@@ -28,12 +28,29 @@ pub trait MessageQueueFactory: Send + Sync {
 }
 
 /// Production message-queue factory.
-pub struct DefaultMessageQueueFactory;
+///
+/// Owns the publish pacing bucket and hands the same one to every queue it creates, so
+/// `PUBLISH_MAX_RECORDS_PER_SEC` is a total across all files being extracted at once.
+pub struct DefaultMessageQueueFactory {
+    pacer: SharedPacer,
+}
+
+impl DefaultMessageQueueFactory {
+    pub fn new(pacer: SharedPacer) -> Self {
+        Self { pacer }
+    }
+}
+
+impl Default for DefaultMessageQueueFactory {
+    fn default() -> Self {
+        Self::new(pacer_from_env())
+    }
+}
 
 #[async_trait]
 impl MessageQueueFactory for DefaultMessageQueueFactory {
     async fn create(&self, url: &str, exchange_prefix: &str) -> Result<Arc<dyn MessagePublisher>> {
-        Ok(Arc::new(MessageQueue::new(url, 3, exchange_prefix).await?))
+        Ok(Arc::new(MessageQueue::new_with_pacer(url, 3, exchange_prefix, self.pacer.clone()).await?))
     }
 }
 

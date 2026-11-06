@@ -367,7 +367,7 @@ async fn test_process_discogs_data_force_reprocess_bypasses_skip() {
 async fn test_default_mq_factory_create_fails_without_broker() {
     use extractor::extractor::MessageQueueFactory;
 
-    let factory = DefaultMessageQueueFactory;
+    let factory = DefaultMessageQueueFactory::default();
     // Invalid port so connection fails fast
     let result: anyhow::Result<Arc<dyn extractor::message_queue::MessagePublisher>> = factory.create("amqp://localhost:59999", "groovemap").await;
     assert!(result.is_err());

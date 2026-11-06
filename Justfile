@@ -37,6 +37,25 @@ source-characterization:
     cargo test --all-features --locked discogs::normalize::tests::
     cargo test --all-features --locked discogs::rules::tests::
 
+# Real-broker tests (#[ignore]d in `just test`): start a disposable RabbitMQ at the deployment
+# pin, run them, and always remove the container and its anonymous volumes. Needs docker.
+rabbitmq_image := "rabbitmq@sha256:c200fd496482cda18c412be4e6f244830e1e75949b8cf5f0e887cea9ea456109"
+
+test-integration:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    name="gm-ingest-it-$$"
+    trap 'docker rm -f -v "$name" >/dev/null 2>&1 || true' EXIT
+    docker run -d --name "$name" --user rabbitmq -p 127.0.0.1::5672 {{rabbitmq_image}} >/dev/null
+    port="$(docker port "$name" 5672/tcp | head -n1 | sed 's/.*://')"
+    for _ in $(seq 1 60); do
+        docker exec "$name" rabbitmq-diagnostics -q ping >/dev/null 2>&1 && break
+        sleep 2
+    done
+    docker exec "$name" rabbitmq-diagnostics -q ping >/dev/null
+    export GM_TEST_AMQP_URL="amqp://guest:guest@127.0.0.1:${port}" GM_TEST_RABBITMQ_CONTAINER="$name"
+    timeout 600 cargo test --all-features --locked --lib -- --ignored --test-threads=1
+
 coverage: bootstrap
     cargo clean
     if [[ "$(uname -s)" == Linux ]]; then export RUSTFLAGS="${RUSTFLAGS:+${RUSTFLAGS} }-C link-arg=-fuse-ld=bfd"; fi; mise exec {{cargo_llvm_cov_tool}} -- cargo llvm-cov --all-features --locked --lcov --output-path lcov.info

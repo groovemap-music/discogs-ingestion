@@ -1,5 +1,6 @@
 # Discogs ingestion documentation
 
+- [Publish rate](publish-rate.md) — what limited publishing, with measurements.
 - [Extraction architecture](extraction.md) — download, XML parsing, normalization,
   data-quality rules, publication, and independent scheduling.
 - [Extraction rules](extraction-rules-guide.md) — skip, filter, validation, and diagnostics.
