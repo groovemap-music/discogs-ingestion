@@ -1,6 +1,9 @@
 //! Measures the extractor's real publisher against a real RabbitMQ.
 //!
-//! Usage: publish_rate <amqp-url> <messages> <batch-size> <queues> <deadline-secs>
+//! Usage: publish_rate <amqp-url> <messages> <batch-size> <queues> <deadline-secs> [files]
+//!
+//! With `files` > 1 the messages are split across that many concurrent `MessageQueue`s that
+//! share one pacer, like the extractor's files do.
 //!
 //! Declares `<queues>` durable quorum queues bound to the fanout exchange, publishes
 //! `<messages>` real release events through `MessageQueue::publish_batch`, then prints the rate.
@@ -11,6 +14,7 @@ use lapin::{
     options::*,
     types::{AMQPValue, FieldTable},
 };
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 #[tokio::main]
@@ -38,20 +42,40 @@ async fn main() -> anyhow::Result<()> {
             .await?;
     }
 
+    let files: usize = a.get(6).map(|v| v.parse()).transpose()?.unwrap_or(1);
+    let pacer = extractor::message_queue::pacer_from_env();
+    let mut queues_mq = vec![];
+    for _ in 0..files {
+        let q = MessageQueue::new_with_pacer(&url, 3, &prefix, pacer.clone()).await?;
+        queues_mq.push(Arc::new(q));
+    }
     let started = Instant::now();
     let run = async {
-        let mut sent = 0usize;
-        while sent < total {
-            let n = batch.min(total - sent);
-            let msgs: Vec<DataMessage> = (0..n)
-                .map(|i| {
-                    let mut data = template.clone();
-                    data["id"] = format!("{}", sent + i).into();
-                    DataMessage { id: format!("{}", sent + i), sha256: "0".repeat(64), data, raw_xml: None }
-                })
-                .collect();
-            mq.publish_batch(msgs, DataType::Releases).await?;
-            sent += n;
+        let per_file = total / files;
+        let mut tasks = vec![];
+        for (f, q) in queues_mq.iter().cloned().enumerate() {
+            let template = template.clone();
+            tasks.push(tokio::spawn(async move {
+                let mut sent = 0usize;
+                while sent < per_file {
+                    let n = batch.min(per_file - sent);
+                    let msgs: Vec<DataMessage> = (0..n)
+                        .map(|i| {
+                            let id = format!("{f}-{}", sent + i);
+                            let mut data = template.clone();
+                            data["id"] = id.clone().into();
+                            DataMessage { id, sha256: "0".repeat(64), data, raw_xml: None }
+                        })
+                        .collect();
+                    q.publish_batch(msgs, DataType::Releases).await?;
+                    sent += n;
+                }
+                anyhow::Ok(sent)
+            }));
+        }
+        let mut sent = 0;
+        for t in tasks {
+            sent += t.await??;
         }
         anyhow::Ok(sent)
     };
@@ -59,7 +83,7 @@ async fn main() -> anyhow::Result<()> {
         .await
         .map_err(|_| anyhow::anyhow!("DEADLINE EXCEEDED: treated as failure"))??;
     let secs = started.elapsed().as_secs_f64();
-    println!("RESULT messages={sent} batch={batch} queues={queues} secs={secs:.2} rate={:.0}/s", sent as f64 / secs);
+    println!("RESULT messages={sent} files={files} batch={batch} queues={queues} secs={secs:.2} rate={:.0}/s", sent as f64 / secs);
 
     for q in 0..queues {
         let name = format!("{prefix}-q{q}");

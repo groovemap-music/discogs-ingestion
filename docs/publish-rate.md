@@ -55,7 +55,8 @@ Changed:
 
 Consumers write about 530 to 800 records a second, so publishing at 15,000 a second only moves
 records into RabbitMQ queues. `publish_batch` takes a token from a shared bucket before each
-send, which holds the total rate across all files near a ceiling.
+send. `DefaultMessageQueueFactory` owns one bucket and gives the same `Arc<Mutex<TokenBucket>>` to every
+`MessageQueue` it creates, so the ceiling is a total across all files, not per connection.
 
 | Setting | Behaviour |
 | --- | --- |
@@ -73,3 +74,13 @@ Measured with the same harness (30,000 records, batch 100, 2 queues, real broker
 | `500` | 501/s | 59.90 s |
 
 Every queue held all 30,000 messages in each run.
+
+Four files publishing at once (the extractor's case), each its own `MessageQueue`, 32,000
+records, default setting: 1 file 1,507/s, 4 files 1,507/s (21.2 s both). With one bucket per
+connection the same four files measured 5,949/s.
+
+## Real-broker tests
+
+`just test-integration` starts a disposable RabbitMQ at the deployment pin (`--user rabbitmq`),
+runs the `#[ignore]`d broker tests, including the memory-alarm test, and removes the container
+and its volumes. CI runs it through `integration-command`.

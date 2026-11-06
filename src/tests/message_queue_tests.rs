@@ -462,7 +462,7 @@ async fn test_pace_sleeps_so_total_rate_holds() {
         url: String::new(),
         max_retries: 1,
         exchange_prefix: DEFAULT_EXCHANGE_PREFIX.to_string(),
-        pacer: Some(Mutex::new(TokenBucket::new(1500.0, Instant::now()))),
+        pacer: Some(Arc::new(Mutex::new(TokenBucket::new(1500.0, Instant::now())))),
     };
     let started = Instant::now();
     for _ in 0..3150 {
@@ -540,4 +540,30 @@ async fn publish_batch_errors_under_memory_alarm() {
         elapsed >= PUBLISH_CONFIRM_TIMEOUT - Duration::from_secs(1) && elapsed < PUBLISH_CONFIRM_TIMEOUT + Duration::from_secs(10),
         "failed after {elapsed:?}, expected about {PUBLISH_CONFIRM_TIMEOUT:?}"
     );
+}
+
+#[tokio::test(start_paused = true)]
+async fn test_two_queues_sharing_a_pacer_hold_one_total_rate() {
+    let shared: SharedPacer = Some(Arc::new(Mutex::new(TokenBucket::new(1500.0, Instant::now()))));
+    let queue = |pacer: SharedPacer| MessageQueue {
+        connection: Arc::new(RwLock::new(None)),
+        channel: Arc::new(RwLock::new(None)),
+        reconnect_mutex: tokio::sync::Mutex::new(()),
+        url: String::new(),
+        max_retries: 1,
+        exchange_prefix: DEFAULT_EXCHANGE_PREFIX.to_string(),
+        pacer,
+    };
+    let (a, b) = (queue(shared.clone()), queue(shared));
+    let started = Instant::now();
+    let run = |mq: MessageQueue| async move {
+        for _ in 0..1575 {
+            mq.pace().await;
+        }
+    };
+    tokio::join!(run(a), run(b));
+    // 3150 records across two instances at one 1500/s bucket with a 150-token burst: 2 s,
+    // not the 1 s two independent buckets would take.
+    let secs = started.elapsed().as_secs_f64();
+    assert!((1.95..=2.05).contains(&secs), "two instances took {secs}s for 3150 records");
 }

@@ -127,7 +127,7 @@ async fn main() -> Result<()> {
     let shutdown = setup_shutdown_handler();
 
     // Create factory for message queue connections
-    let mq_factory: Arc<dyn runtime::MessageQueueFactory> = Arc::new(runtime::DefaultMessageQueueFactory);
+    let mq_factory: Arc<dyn runtime::MessageQueueFactory> = Arc::new(runtime::DefaultMessageQueueFactory::default());
 
     let extraction_result = discogs::run_extraction_loop(
         config.clone(),

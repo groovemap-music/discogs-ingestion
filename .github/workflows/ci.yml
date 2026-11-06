@@ -18,6 +18,7 @@ jobs:
       setup-command: just setup
       check-command: just check
       coverage-command: just coverage
+      integration-command: just test-integration
       audit-command: just audit
       license-command: just license-check
       secret-scan-command: just secret-scan

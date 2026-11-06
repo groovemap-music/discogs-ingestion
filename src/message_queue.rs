@@ -61,7 +61,7 @@ fn publish_rate_from(raw: Option<&str>) -> Option<f64> {
 ///
 /// `take` reserves a token and returns how long the caller must wait before using it, so
 /// concurrent publishers share one total rate without holding the lock across an await.
-struct TokenBucket {
+pub struct TokenBucket {
     rate: f64,
     capacity: f64,
     tokens: f64,
@@ -69,7 +69,7 @@ struct TokenBucket {
 }
 
 impl TokenBucket {
-    fn new(rate: f64, now: Instant) -> Self {
+    pub(crate) fn new(rate: f64, now: Instant) -> Self {
         let capacity = (rate * PUBLISH_BURST_SECONDS).max(1.0);
         Self { rate, capacity, tokens: capacity, last: now }
     }
@@ -85,6 +85,16 @@ impl TokenBucket {
             Duration::from_secs_f64(-self.tokens / self.rate)
         }
     }
+}
+
+/// A pacing bucket shared by every publisher that must count against one total rate;
+/// `None` means pacing is off.
+pub type SharedPacer = Option<Arc<Mutex<TokenBucket>>>;
+
+/// Build the pacing bucket from `PUBLISH_MAX_RECORDS_PER_SEC`. Call once per process and hand
+/// the result to every `MessageQueue`, so the rate is a total across files, not per connection.
+pub fn pacer_from_env() -> SharedPacer {
+    publish_rate_from(std::env::var(PUBLISH_RATE_ENV).ok().as_deref()).map(|rate| Arc::new(Mutex::new(TokenBucket::new(rate, Instant::now()))))
 }
 
 /// Decide whether a publisher confirm actually proves delivery.
@@ -139,7 +149,7 @@ pub struct MessageQueue {
     url: String,
     max_retries: u32,
     exchange_prefix: String,
-    pacer: Option<Mutex<TokenBucket>>,
+    pacer: SharedPacer,
 }
 
 impl MessageQueue {
@@ -148,7 +158,13 @@ impl MessageQueue {
         format!("{}-{}", self.exchange_prefix, data_type)
     }
 
+    /// Connect with a pacer of its own, read from the environment. Use `new_with_pacer` when
+    /// several queues must share one total rate.
     pub async fn new(url: &str, max_retries: u32, exchange_prefix: &str) -> Result<Self> {
+        Self::new_with_pacer(url, max_retries, exchange_prefix, pacer_from_env()).await
+    }
+
+    pub async fn new_with_pacer(url: &str, max_retries: u32, exchange_prefix: &str, pacer: SharedPacer) -> Result<Self> {
         let normalized_url = Self::normalize_amqp_url(url)?;
 
         let mq = Self {
@@ -158,7 +174,7 @@ impl MessageQueue {
             url: normalized_url,
             max_retries,
             exchange_prefix: exchange_prefix.to_string(),
-            pacer: publish_rate_from(std::env::var(PUBLISH_RATE_ENV).ok().as_deref()).map(|rate| Mutex::new(TokenBucket::new(rate, Instant::now()))),
+            pacer,
         };
 
         mq.connect().await?;
