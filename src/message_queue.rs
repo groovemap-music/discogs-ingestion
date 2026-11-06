@@ -1,9 +1,9 @@
 use anyhow::{Context, Result};
 use lapin::{BasicProperties, Channel, Confirmation, Connection, ConnectionProperties, ExchangeKind, options::*, types::FieldTable};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::RwLock;
-use tokio::time::sleep;
+use tokio::time::{Instant, sleep};
 use tracing::{Instrument, debug, error, info, warn};
 use url::Url;
 
@@ -27,6 +27,65 @@ const AMQP_EXCHANGE_TYPE: ExchangeKind = ExchangeKind::Fanout;
 /// per-file pipeline wedges. The shutdown flag is only polled BETWEEN files, so
 /// SIGTERM cannot break it and the container is SIGKILLed.
 const PUBLISH_CONFIRM_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// Environment variable that sets the publish pacing, in records per second across all files.
+/// `0` disables pacing.
+pub const PUBLISH_RATE_ENV: &str = "PUBLISH_MAX_RECORDS_PER_SEC";
+
+/// Default pacing. Consumers write roughly 530 to 800 records a second, so publishing faster
+/// only moves records into RabbitMQ queues instead of finishing the load sooner.
+const DEFAULT_PUBLISH_RATE: f64 = 1500.0;
+
+/// Burst allowance as a fraction of a second of the configured rate.
+const PUBLISH_BURST_SECONDS: f64 = 0.1;
+
+/// Resolve the pacing rate from the raw environment value.
+///
+/// Returns `None` when pacing is disabled (`0`). An unset, empty or unparseable value falls
+/// back to the default rather than silently disabling the limit.
+fn publish_rate_from(raw: Option<&str>) -> Option<f64> {
+    match raw.map(str::trim).filter(|value| !value.is_empty()) {
+        None => Some(DEFAULT_PUBLISH_RATE),
+        Some(value) => match value.parse::<f64>() {
+            Ok(0.0) => None,
+            Ok(rate) if rate.is_finite() && rate > 0.0 => Some(rate),
+            _ => {
+                warn!("⚠️ Ignoring invalid {}={:?}; using the default of {} records/s", PUBLISH_RATE_ENV, value, DEFAULT_PUBLISH_RATE);
+                Some(DEFAULT_PUBLISH_RATE)
+            }
+        },
+    }
+}
+
+/// Token bucket that paces publishing. One token per record.
+///
+/// `take` reserves a token and returns how long the caller must wait before using it, so
+/// concurrent publishers share one total rate without holding the lock across an await.
+struct TokenBucket {
+    rate: f64,
+    capacity: f64,
+    tokens: f64,
+    last: Instant,
+}
+
+impl TokenBucket {
+    fn new(rate: f64, now: Instant) -> Self {
+        let capacity = (rate * PUBLISH_BURST_SECONDS).max(1.0);
+        Self { rate, capacity, tokens: capacity, last: now }
+    }
+
+    fn take(&mut self, now: Instant) -> Duration {
+        let elapsed = now.saturating_duration_since(self.last).as_secs_f64();
+        self.last = now;
+        self.tokens = (self.tokens + elapsed * self.rate).min(self.capacity);
+        self.tokens -= 1.0;
+        if self.tokens >= 0.0 {
+            Duration::ZERO
+        } else {
+            Duration::from_secs_f64(-self.tokens / self.rate)
+        }
+    }
+}
 
 /// Decide whether a publisher confirm actually proves delivery.
 ///
@@ -80,6 +139,7 @@ pub struct MessageQueue {
     url: String,
     max_retries: u32,
     exchange_prefix: String,
+    pacer: Option<Mutex<TokenBucket>>,
 }
 
 impl MessageQueue {
@@ -98,6 +158,7 @@ impl MessageQueue {
             url: normalized_url,
             max_retries,
             exchange_prefix: exchange_prefix.to_string(),
+            pacer: publish_rate_from(std::env::var(PUBLISH_RATE_ENV).ok().as_deref()).map(|rate| Mutex::new(TokenBucket::new(rate, Instant::now()))),
         };
 
         mq.connect().await?;
@@ -216,23 +277,50 @@ impl MessageQueue {
     /// returned `PublisherConfirm`. Splitting the two lets a batch keep many publishes in
     /// flight at once instead of paying one broker round trip (a quorum-queue fsync on every
     /// bound queue) per message.
-    async fn send_payload(&self, channel: &Channel, exchange_name: &str, payload: &[u8]) -> Result<lapin::PublisherConfirm> {
-        channel
-            .basic_publish(exchange_name.into(), "".into(), Self::publish_options(), payload, Self::message_properties())
-            .await
-            .context("Failed to publish message")
+    ///
+    /// The write itself can park too: under a memory alarm RabbitMQ blocks the connection and
+    /// stops reading, so the socket buffer fills and `basic_publish` never returns. The send
+    /// is therefore bounded by the same deadline as the confirm. Returns the pending confirm
+    /// and how long the send took.
+    async fn send_payload(&self, channel: &Channel, exchange_name: &str, payload: &[u8]) -> Result<(lapin::PublisherConfirm, Duration)> {
+        let started = Instant::now();
+        let sent = tokio::time::timeout(
+            PUBLISH_CONFIRM_TIMEOUT,
+            channel.basic_publish(exchange_name.into(), "".into(), Self::publish_options(), payload, Self::message_properties()),
+        )
+        .await;
+        let elapsed = started.elapsed();
+        match sent {
+            Ok(result) => Ok((result.context("Failed to publish message")?, elapsed)),
+            Err(_) => {
+                telemetry::record_publish_confirm(elapsed);
+                error!("❌ Publish send timed out after {:?} — broker may be under a resource alarm", PUBLISH_CONFIRM_TIMEOUT);
+                Err(anyhow::anyhow!("Timed out after {:?} sending publish", PUBLISH_CONFIRM_TIMEOUT))
+            }
+        }
+    }
+
+    /// Wait for the pacing bucket to release a token. A no-op when pacing is disabled.
+    async fn pace(&self) {
+        let wait = match &self.pacer {
+            Some(pacer) => pacer.lock().unwrap_or_else(|poisoned| poisoned.into_inner()).take(Instant::now()),
+            None => return,
+        };
+        if !wait.is_zero() {
+            sleep(wait).await;
+        }
     }
 
     /// Wait for one pending confirm and require both a broker ack and proof that the
-    /// message was routable.
-    async fn settle_confirm(exchange_name: &str, publish: lapin::PublisherConfirm) -> Result<()> {
-        // Time only the confirm wait, not serialization or the basic_publish write — this is
-        // the broker-side latency the `groovemap.extraction.publish.confirm.duration`
-        // histogram is meant to show, and the signal that goes flat when RabbitMQ trips a
-        // resource alarm.
-        let confirm_started = std::time::Instant::now();
+    /// message was routable. `send_elapsed` is the time `send_payload` already spent, so the
+    /// recorded duration covers the whole broker wait for this message (send plus confirm).
+    async fn settle_confirm(exchange_name: &str, publish: lapin::PublisherConfirm, send_elapsed: Duration) -> Result<()> {
+        // Time only the broker wait, not serialization or pacing — this is the latency the
+        // `groovemap.extraction.publish.confirm.duration` histogram is meant to show, and the
+        // signal that goes flat when RabbitMQ trips a resource alarm.
+        let confirm_started = Instant::now();
         let confirm = Self::await_confirm(publish).await;
-        telemetry::record_publish_confirm(confirm_started.elapsed());
+        telemetry::record_publish_confirm(send_elapsed + confirm_started.elapsed());
         let confirm = confirm?;
 
         let acked = confirm.is_ack();
@@ -249,8 +337,8 @@ impl MessageQueue {
     /// Publish one already-serialized payload and require both a broker ack and proof
     /// that the message was routable.
     async fn publish_payload(&self, channel: &Channel, exchange_name: &str, payload: &[u8]) -> Result<()> {
-        let publish = self.send_payload(channel, exchange_name, payload).await?;
-        Self::settle_confirm(exchange_name, publish).await
+        let (publish, send_elapsed) = self.send_payload(channel, exchange_name, payload).await?;
+        Self::settle_confirm(exchange_name, publish, send_elapsed).await
     }
 
     async fn get_channel(&self) -> Result<Channel> {
@@ -339,11 +427,13 @@ impl MessagePublisher for MessageQueue {
             for message in messages {
                 let payload = serde_json::to_vec(&Message::Data(message)).context("Failed to serialize message")?;
 
+                // Pace before the send so the total publish rate stays near the consumers' write rate.
+                self.pace().await;
                 pending.push(self.send_payload(&channel, &exchange_name, &payload).await?);
             }
 
-            for publish in pending {
-                Self::settle_confirm(&exchange_name, publish).await?;
+            for (publish, send_elapsed) in pending {
+                Self::settle_confirm(&exchange_name, publish, send_elapsed).await?;
             }
 
             Ok(())

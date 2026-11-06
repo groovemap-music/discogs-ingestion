@@ -9,6 +9,7 @@ fn test_exchange_names_default_prefix() {
         url: String::new(),
         max_retries: 1,
         exchange_prefix: DEFAULT_EXCHANGE_PREFIX.to_string(),
+        pacer: None,
     };
     assert_eq!(mq.exchange_name(DataType::Artists), "groovemap-discogs-artists");
     assert_eq!(mq.exchange_name(DataType::Labels), "groovemap-discogs-labels");
@@ -25,6 +26,7 @@ fn test_exchange_names_custom_prefix() {
         url: String::new(),
         max_retries: 1,
         exchange_prefix: "groovemap-musicbrainz".to_string(),
+        pacer: None,
     };
     assert_eq!(mq.exchange_name(DataType::Artists), "groovemap-musicbrainz-artists");
     assert_eq!(mq.exchange_name(DataType::Labels), "groovemap-musicbrainz-labels");
@@ -268,6 +270,7 @@ async fn test_get_channel_with_no_channel_triggers_reconnect() {
         url: "amqp://localhost:59999".to_string(),
         max_retries: 1,
         exchange_prefix: DEFAULT_EXCHANGE_PREFIX.to_string(),
+        pacer: None,
     };
 
     let result = mq.get_channel().await;
@@ -288,6 +291,7 @@ async fn test_close_with_no_channel_or_connection_is_ok() {
         url: String::new(),
         max_retries: 1,
         exchange_prefix: DEFAULT_EXCHANGE_PREFIX.to_string(),
+        pacer: None,
     };
 
     let result = mq.close().await;
@@ -418,4 +422,122 @@ fn test_message_properties_carry_the_trace_context() {
     // The rest of the contract is untouched by the injection.
     assert_eq!(properties.delivery_mode(), &Some(2));
     assert_eq!(properties.content_type().as_ref().expect("content_type").as_str(), "application/json");
+}
+
+#[test]
+fn test_publish_rate_from_env_value() {
+    assert_eq!(publish_rate_from(None), Some(DEFAULT_PUBLISH_RATE));
+    assert_eq!(publish_rate_from(Some("  ")), Some(DEFAULT_PUBLISH_RATE));
+    assert_eq!(publish_rate_from(Some("250")), Some(250.0));
+    assert_eq!(publish_rate_from(Some("0")), None, "0 disables pacing");
+    assert_eq!(publish_rate_from(Some("fast")), Some(DEFAULT_PUBLISH_RATE), "garbage must not silently disable the limit");
+    assert_eq!(publish_rate_from(Some("-5")), Some(DEFAULT_PUBLISH_RATE));
+    assert_eq!(publish_rate_from(Some("NaN")), Some(DEFAULT_PUBLISH_RATE));
+}
+
+#[tokio::test(start_paused = true)]
+async fn test_token_bucket_paces_to_rate() {
+    let start = Instant::now();
+    let mut bucket = TokenBucket::new(1000.0, start);
+    // The burst (100 ms of rate) is free; after that every token costs 1 ms.
+    let mut waited = Duration::ZERO;
+    for _ in 0..1100 {
+        waited += bucket.take(start);
+    }
+    // All 1100 takes at the same instant: the 1000 beyond the 100-token burst queue up
+    // behind each other, so the last one waits ~1 s.
+    let last = bucket.take(start);
+    assert!(last >= Duration::from_millis(990) && last <= Duration::from_millis(1010), "last wait was {last:?}");
+    assert!(waited > Duration::ZERO);
+    // After the reservations drain, the bucket is not left in debt.
+    assert_eq!(bucket.take(start + Duration::from_secs(5)), Duration::ZERO);
+}
+
+#[tokio::test(start_paused = true)]
+async fn test_pace_sleeps_so_total_rate_holds() {
+    let mq = MessageQueue {
+        connection: Arc::new(RwLock::new(None)),
+        channel: Arc::new(RwLock::new(None)),
+        reconnect_mutex: tokio::sync::Mutex::new(()),
+        url: String::new(),
+        max_retries: 1,
+        exchange_prefix: DEFAULT_EXCHANGE_PREFIX.to_string(),
+        pacer: Some(Mutex::new(TokenBucket::new(1500.0, Instant::now()))),
+    };
+    let started = Instant::now();
+    for _ in 0..3150 {
+        mq.pace().await;
+    }
+    // 3150 records at 1500/s with a 150-token burst: 2 s of pacing.
+    let secs = started.elapsed().as_secs_f64();
+    assert!((1.95..=2.05).contains(&secs), "3150 paced records took {secs}s");
+}
+
+/// Real broker, memory alarm raised: `publish_batch` must return Err at the confirm deadline
+/// instead of parking forever (commit 57ec207 parked past 100 s).
+///
+/// Needs a disposable RabbitMQ. Set `GM_TEST_AMQP_URL` and `GM_TEST_RABBITMQ_CONTAINER` (the
+/// docker container name running it); the test raises and then clears the alarm with
+/// `rabbitmqctl`. Run: `cargo test --locked publish_batch_errors_under_memory_alarm -- --ignored`.
+#[tokio::test]
+#[ignore = "needs a disposable real RabbitMQ; see the doc comment"]
+async fn publish_batch_errors_under_memory_alarm() {
+    let url = std::env::var("GM_TEST_AMQP_URL").expect("GM_TEST_AMQP_URL");
+    let container = std::env::var("GM_TEST_RABBITMQ_CONTAINER").expect("GM_TEST_RABBITMQ_CONTAINER");
+    let ctl = |args: &[&str]| {
+        let out = std::process::Command::new("docker")
+            .arg("exec")
+            .arg(&container)
+            .arg("rabbitmqctl")
+            .args(args)
+            .output()
+            .expect("docker exec");
+        assert!(out.status.success(), "rabbitmqctl {args:?}: {}", String::from_utf8_lossy(&out.stderr));
+    };
+
+    let prefix = format!("alarmtest{}", std::process::id());
+    let mq = MessageQueue::new(&url, 3, &prefix).await.expect("connect");
+    mq.setup_exchange(DataType::Releases).await.expect("exchange");
+    let conn = Connection::connect(&url, ConnectionProperties::default()).await.expect("conn");
+    let ch = conn.create_channel().await.expect("ch");
+    let queue = ch
+        .queue_declare("".into(), QueueDeclareOptions { exclusive: true, ..Default::default() }, FieldTable::default())
+        .await
+        .expect("queue");
+    ch.queue_bind(queue.name().clone(), format!("{prefix}-releases").into(), "".into(), QueueBindOptions::default(), FieldTable::default())
+        .await
+        .expect("bind");
+
+    let batch = |n: usize| -> Vec<DataMessage> {
+        (0..n)
+            .map(|i| DataMessage { id: i.to_string(), sha256: "0".repeat(64), data: serde_json::json!({"id": i}), raw_xml: None })
+            .collect()
+    };
+
+    // Healthy broker: a batch succeeds.
+    mq.publish_batch(batch(50), DataType::Releases).await.expect("healthy publish");
+
+    // Raise the memory alarm: the broker blocks publishers while the TCP connection stays up.
+    ctl(&["set_vm_memory_high_watermark", "absolute", "1MB"]);
+    let started = std::time::Instant::now();
+    // Enough data to fill socket buffers and park a write as well as an ack.
+    let result = tokio::time::timeout(Duration::from_secs(PUBLISH_CONFIRM_TIMEOUT.as_secs() + 30), async {
+        let mut r = Ok(());
+        for _ in 0..200 {
+            r = mq.publish_batch(batch(500), DataType::Releases).await;
+            if r.is_err() {
+                break;
+            }
+        }
+        r
+    })
+    .await;
+    let elapsed = started.elapsed();
+    ctl(&["set_vm_memory_high_watermark", "0.4"]);
+    let result = result.expect("publish_batch parked past the deadline under a memory alarm");
+    assert!(result.is_err(), "a publish under a memory alarm must fail, not succeed");
+    assert!(
+        elapsed >= PUBLISH_CONFIRM_TIMEOUT - Duration::from_secs(1) && elapsed < PUBLISH_CONFIRM_TIMEOUT + Duration::from_secs(10),
+        "failed after {elapsed:?}, expected about {PUBLISH_CONFIRM_TIMEOUT:?}"
+    );
 }
