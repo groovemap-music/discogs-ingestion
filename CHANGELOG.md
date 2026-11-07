@@ -3,6 +3,31 @@
 All notable changes to this repository will be recorded here by Commitizen from
 Conventional Commits.
 
+## v0.4.1 (2026-11-06)
+
+### Release notes
+
+Publisher confirms are pipelined and publishing is paced. The quality report counts what the filters repaired, and rules a filter shadows are retired, so 7 rules remain.
+
+### Fix
+
+- **rules**: report filter repairs and retire rules a filter shadows
+- **publisher**: share one pacing bucket across all publishers
+- **publisher**: bound the publish send and pace publishing
+- **logging**: emit the shared GrooveMap JSON log schema
+- **deps**: bump rustls-webpki and webpki-root-certs for RUSTSEC-2026-0382 and RUSTSEC-2026-0383 (gm-discogs-ingestion-gue)
+- **deps**: patch quinn-proto and rustls security advisories
+- **build**: move sccache wrapper out of committed cargo config (#9)
+
+### Refactor
+
+- **state-marker**: drop MusicBrainz filename handling from extract_data_type
+- **types**: drop MusicBrainz-only ReleaseGroups from the Discogs extractor
+
+### Perf
+
+- **publisher**: pipeline publisher confirms per batch
+
 ## v0.4.0 (2026-10-03)
 
 ### Feat
