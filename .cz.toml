@@ -2,6 +2,7 @@
 name = "cz_conventional_commits"
 version_provider = "cargo"
 version_scheme = "semver"
+major_version_zero = true
 tag_format = "v$version"
 annotated_tag = true
 update_changelog_on_bump = true
